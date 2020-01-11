@@ -33,7 +33,7 @@ export default class Main extends React.Component {
     timeout = 250; 
 
     connect = () => {
-        var ws = new WebSocket("ws://localhost:8002/game");
+        var ws = new WebSocket("ws://mysterium-backend.herokuapp.com/game");
         let that = this; // cache the this
         var connectInterval;
 
