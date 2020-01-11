@@ -12,7 +12,7 @@ export default class Main extends React.Component {
             client_id: null,
             users:{},
             cards:{},
-            image_sources:["cfUQfVZ", "cO7wvbR", "mIvRj", "mtzum"],
+            image_sources:["yGUC9", "cO7wvbR", "mIvRj", "mtzum"],
             image_links:{},
             stories: [],
             known_stories:[],
