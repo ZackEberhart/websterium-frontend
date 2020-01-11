@@ -12,7 +12,7 @@ export default class Main extends React.Component {
             client_id: null,
             users:{},
             cards:{},
-            image_sources:["QguRw", "1n7qV", "SHeYB", "Xv2DY"],
+            image_sources:["cfUQfVZ", "cO7wvbR", "SHeYB", "pxXEC"],
             image_links:{},
             stories: [],
             known_stories:[],
@@ -34,6 +34,7 @@ export default class Main extends React.Component {
 
     connect = () => {
         var ws = new WebSocket("wss://mysterium-backend.herokuapp.com/game");
+        // var ws = new WebSocket("wss://localhost:8002/game");
         let that = this; // cache the this
         var connectInterval;
 
@@ -138,6 +139,7 @@ export default class Main extends React.Component {
 
     makeGuess = (card) =>{
         const message = {"psychic": this.state.client_id, "guess": card}
+        console.log(message)
         this.send('makeGuess', message)
     }
 
