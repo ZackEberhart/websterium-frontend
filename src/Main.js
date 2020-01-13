@@ -12,13 +12,17 @@ export default class Main extends React.Component {
             client_id: null,
             users:{},
             cards:{},
-            image_sources:["yGUC9", "cO7wvbR", "mIvRj", "mtzum"],
+            image_sources:["yGUC9", "cO7wvbR", "VoCv2", "mtzum"],
             image_links:{},
             stories: [],
             known_stories:[],
             selected:[],
             psychics:[],
-            ghost:{"hand":[], 'psychics_clued':[]}
+            ghost:{"hand":[], 'psychics_clued':[]},
+            selected_psychic:0,
+            selected_dream:null,
+            selected_card:null,
+            selected_stage:0,
         };
     }
 
@@ -53,18 +57,19 @@ export default class Main extends React.Component {
             const message = data["message"]
             if(data["type"] === "user_list"){
                 this.showUserList(message)
-            }else if(data['type'] === "start"){
-                 this.startGame(message)
-            }else if(data['type'] === "image_links"){
-                 this.setState({'image_links': message})
-            }else if(data['type'] === "state"){
-                 this.updateState(message)
-            }else if(data['type'] === "reject"){
-                 this.handleRejection(message)
             }else if(data['type'] === "client_id"){
                  this.setState({'client_id': message})
+                 if(message != "ghost") this.setState({'selected_psychic': parseInt(message)})
+            }else if(data['type'] === "image_links"){
+                 this.setState({'image_links': message})
             }else if(data['type'] === "stories"){
                  this.setState({'stories': message})
+            }else if(data['type'] === "state"){
+                 this.updateState(message)
+            }else if(data['type'] === "start"){
+                 this.startGame(message)
+            }else if(data['type'] === "reject"){
+                 this.handleRejection(message)
             }else{
             }
         }
@@ -117,14 +122,39 @@ export default class Main extends React.Component {
             started: true,
             cards: message,
         })
+        if(this.state.client_id == "ghost"){
+            this.setState({
+                selected_card: this.state.stories[0][0]
+            })
+        }else{
+            this.setState({
+                selected_card: this.state.cards["suspects"][0]
+            })
+        }
     }
 
     updateState = (message) =>{
-        console.log(message)
         this.setState({
             psychics: message["psychics"],
             ghost: message["ghost"],
         })
+        //If the currently-selected psychic just advanced a round, update the view
+        if(message['psychics'][this.state.selected_psychic]['stage'] != this.state.selected_stage){
+            this.setState({
+                selected_stage: message['psychics'][this.state.selected_psychic]['stage'],
+            })
+            if(this.state.client_id == "ghost"){
+                this.setState({
+                    selected_card: this.state.stories[this.state.selected_psychic][message['psychics'][this.state.selected_psychic]['stage']],
+                })
+            }else{
+                const cardtype = this.state.selected_stage==0 ? "suspects" : (this.state.selected_stage==1 ? "places" : "things")
+                this.setState({
+                    selected_card: this.state.cards[cardtype][0],
+                    selected_dream: null,
+                })
+            }
+        }
     }
 
     handleRejection = (message) =>{
@@ -133,8 +163,12 @@ export default class Main extends React.Component {
 
     sendDreams = (psychic) =>{
         const message = {"psychic": psychic, "dreams": this.state.selected}
+        console.log(message)
         this.send('sendDreams', message)
-        this.setState({selected:[]})
+        this.setState({
+            selected:[],
+            selected_dream:null
+        })
     }
 
     makeGuess = (card) =>{
@@ -204,18 +238,111 @@ export default class Main extends React.Component {
     gameroom = () => {
         return(
             <div className="container">
-                <div className = "row" style={{backgroundColor:"green", overflow:'hidden', flex:5}}>
-                    <div style={{flex:1,  height:'100%', overflow:'scroll', "textAlign":'center'}}>
+                <div className = "row" style={{overflow:'hidden'}}>
+                    {this.allpsychics()}
+                </div>
+                <div className = "row" style={{overflow:'hidden', flex:1}}>
+                    <div style={{flex:1, padding:'5px'}}>
+                        <div style={{width:'100%', overflow:'scroll', height:'100%', display:'flex', flexDirection:"column", alignItems:"center", boxSizing:'border-box', border:"2px solid black", borderRadius:'5px'}}>
+                            <h3>dreams</h3>
+                            {this.mainhand()}
+                        </div>
+                    </div>
+                    <div style={{flex:2, overflow:'scroll', padding:'5px', display:'flex', alignItems:'center', justifyContent:"center"}}>
+                        {this.selecteddream()}
+                    </div>
+                    <div style={{flex:2, overflow:'scroll', padding:'5px', display:'flex', alignItems:'center', justifyContent:"center"}}>
+                        {this.selectedcard()}
+                    </div>
+                </div>
+                <div className="row" style = {{overflow:'scroll',}}>
+                    <div>
                         {this.allcards()}
                     </div>
-                    <div style={{flex:1, height:'100%', overflow:'scroll'}}>
-                        {this.allpsychics()}
-                    </div>
-                </div>
-                <div className="row" style = {{flex:2}}>
-                    {this.mainhand()}
                 </div>
                 
+            </div>
+        )
+    }
+
+///////////////////////////////////All psychics
+
+    allpsychics = () =>{
+        return this.state.client_id == "ghost" ? this.ghostallpsychics() : this.psychicallpsychics()
+    }
+
+    psychicallpsychics = () =>{
+        return(
+                <div className = "hand" style={{flex:1,  height:'100%', overflow:'scroll', "textAlign":'center'}}>
+                    <div 
+                    className="card"
+                    style = {{borderColor:this.state.selected_psychic === parseInt(this.state.client_id) ? "blue" : "black"}}
+                    onClick={()=>{
+                        this.setState({
+                            selected_stage: this.state.psychics[this.state.client_id]['stage'],
+                            selected_card:this.state.psychics[this.state.client_id]['current_guess'],
+                            selected_dream:null,
+                            selected_psychic:parseInt(this.state.client_id)
+                        })
+                    }}
+                >
+                    <p>Psychic {this.state.client_id}</p>
+                    <p>Stage {this.state.psychics[this.state.client_id]['stage']}</p>
+                </div>
+                    {Object.keys(this.state.psychics).map((psychic_id, index) => {
+                        if(psychic_id != this.state.client_id){
+                            const color = this.state.selected_psychic === parseInt(psychic_id) ? "blue" : "black";
+                            return(
+                                <div 
+                                    key={index} 
+                                    className="card"
+                                    style = {{borderColor:color}}
+                                    onClick={()=>{
+                                        if(psychic_id != this.state.selected_psychic){
+                                            this.setState({
+                                                selected_stage: this.state.psychics[psychic_id]['stage'],
+                                                selected_card:this.state.psychics[psychic_id]['current_guess'],
+                                                selected_dream:null,
+                                                selected_psychic:parseInt(psychic_id)
+                                            })
+                                        }
+                                    }}
+                                >
+                                    <p>Psychic {index}</p>
+                                    <p>Stage {this.state.psychics[psychic_id]['stage']}</p>
+                                </div>
+                            )
+                        }
+                    })}
+                </div>
+        )
+    }
+
+    ghostallpsychics = () =>{
+        return(
+            <div className = "hand" style={{flex:1,  height:'100%', overflow:'scroll', "textAlign":'center'}}>
+                {Object.keys(this.state.psychics).map((psychic_id, index) => {
+                    const color = this.state.selected_psychic === parseInt(psychic_id) ? "blue" : "black";
+                    return(
+                        <div 
+                            key={index} 
+                            className="card"
+                            style = {{borderColor:color}}
+                            onClick={()=>{
+                                if(psychic_id != this.state.selected_psychic){
+                                    this.setState({
+                                        selected_stage: this.state.psychics[psychic_id]['stage'],
+                                        selected_card:this.state.stories[psychic_id][this.state.psychics[psychic_id]['stage']],
+                                        selected_psychic:parseInt(psychic_id)
+                                    })
+                                }
+                            }}
+                        >
+                            <p>Psychic {index}</p>
+                            <p>Stage {this.state.psychics[psychic_id]['stage']}</p>
+                        </div>
+                    )
+                })}
             </div>
         )
     }
@@ -230,17 +357,20 @@ export default class Main extends React.Component {
         if(this.state.client_id!== null && Object.keys(this.state.psychics).length > parseInt(this.state.client_id)){
             return(
                 <div className="hand">
-                    {this.state.psychics[this.state.client_id]['hand'].map((card, index) => {
+                    {this.state.psychics[this.state.selected_psychic]['hand'].map((card, index) => {
+                        const border = card === this.state.selected_dream ? "dashed" : "solid" ;
                         return(
-                            <div key={index} className="card">
-                                <div>
-                                    <img 
-                                        width="100px"
-                                        height="100px"
-                                        src={this.state.image_links['dreams'][card]}
-                                    />
-                                </div>
-                            </div>
+                            <img 
+                                width="100px"
+                                height="100px"
+                                src={this.state.image_links['dreams'][card]}
+                                key={index} 
+                                className="card"
+                                style={{borderStyle: border}}
+                                onClick={(event) => {
+                                    this.setState({selected_dream:card})
+                                }}
+                            />
                         )
                     })}
                  </div>
@@ -249,39 +379,144 @@ export default class Main extends React.Component {
     }
 
     ghosthand = () =>{
-        return(
-            <div className="hand">
-                {this.state.ghost["hand"].map((card, index) => {
-                    const color = this.state.selected.includes(card) ? "blue" : "red";
-                    return(
-                            <img 
-                                type="button" 
-                                id = {card} 
-                                width="100px"
-                                height="100px"
-                                key={index} 
-                                className="card"
-                                style = {{borderColor:color}}
-                                src={this.state.image_links['dreams'][card]}
-                                onClick={(event) => {
-                                    card = parseInt(event.target.id)
-                                    this.setState((state) =>{
-                                        var selected = this.state.selected
-                                        if(selected.includes(card)){
-                                            selected.splice(selected.indexOf(card), 1);
+        if(this.state.selected_psychic!=null){
+            return(
+                <div>
+                    <div className="hand">
+                        {this.state.ghost["hand"].map((card, index) => {
+                            const color = this.state.selected.includes(card) ? "blue" : "red";
+                            const border = card === this.state.selected_dream ? "dashed" : "solid" ;
+                            return(
+                                <img 
+                                    type="button" 
+                                    id = {card} 
+                                    width="100px"
+                                    height="100px"
+                                    key={index} 
+                                    className="card"
+                                    style = {{borderColor:color, borderStyle:border}}
+                                    src={this.state.image_links['dreams'][card]}
+                                    onClick={(event) => {
+                                        if(this.state.selected_dream == card){
+                                            this.setState((state) =>{
+                                                var selected = state.selected
+                                                if(selected.includes(card)){
+                                                    selected.splice(selected.indexOf(card), 1);
+                                                }else{
+                                                    selected.push(card)
+                                                }
+                                                return(
+                                                    {'selected': selected}
+                                                )
+                                            })
                                         }else{
-                                            selected.push(card)
+                                            this.setState({selected_dream:card})
                                         }
-                                        return(
-                                            {'selected': selected}
-                                        )
-                                    },
-                                    )
-                                }}
-                            />
-                    )
-                })}
-            </div>
+                                    }}
+                                />
+                            )
+                        })}
+                    </div>   
+                    <div style={{textAlign:'center'}} >
+                         <button 
+                            type="button" 
+                            onClick={()=>this.sendDreams(this.state.selected_psychic)}
+                            disabled={this.state.ghost['psychics_clued'].includes(parseInt(this.state.selected_psychic))}
+                        >
+                            Send {this.state.selected.length} dreams to Psychic {this.state.selected_psychic}
+                        </button>
+                     </div>
+                </div>
+            )
+        }
+    }
+
+    /*
+    if(this.state.selected_psychic!=null && this.state.selected_psychic != "ghost"){
+            return(
+                <div>
+                    <div className="hand">
+                        {this.state.psychics[this.state.selected_psychic]['hand'].map((card, index) => {
+                            return(
+                                <img 
+                                    width="100px"
+                                    height="100px"
+                                    src={this.state.image_links['dreams'][card]}
+                                    key={index} 
+                                    className="card"
+                                    onClick={(event) => {
+                                        this.setState({selected_dream:card})
+                                    }}
+                                />
+                            )
+                        })}
+                     </div>
+                     <div>
+                         <button 
+                            type="button" 
+                            onClick={()=>this.sendDreams(this.state.selected_psychic)}
+                            disabled={this.state.ghost['psychics_clued'].includes(parseInt(this.state.selected_psychic))}
+                        >
+                            Psychic {this.state.selected_psychic} nknk
+                        </button>
+                     </div>
+                 </div>
+            )
+            */
+
+
+///////////////////////////////////Selected dream
+
+    selecteddream = () =>{
+        return this.state.client_id == "ghost" ? this.ghostselecteddream() : this.psychicselecteddream()
+    }
+
+    ghostselecteddream = () =>{
+        return(
+            <img 
+                style={{maxHeight:"100%", maxWidth:"100%", objectFit: "contain"}}
+                src={this.state.image_links['dreams'][this.state.selected_dream]}
+            />
+        )
+    }
+
+    psychicselecteddream = () =>{
+        return(   
+            <img 
+                style={{maxHeight:"100%", maxWidth:"100%", objectFit: "contain"}}
+                src={this.state.image_links['dreams'][this.state.selected_dream]}
+            />
+        )
+    }
+
+///////////////////////////////////Selected card
+
+    selectedcard = () =>{
+        return this.state.client_id == "ghost" ? this.ghostselectedcard() : this.psychicselectedcard()
+    }
+
+    ghostselectedcard = () =>{
+        return(
+            <img 
+                style={{maxHeight:"100%", maxWidth:"100%", objectFit: "contain"}}
+                src={this.state.image_links['cards'][this.state.selected_stage][this.state.selected_card]}
+            />
+        )
+    }
+
+    psychicselectedcard = () =>{
+        const disabled= !this.state.ghost['psychics_clued'].includes(this.state.client_id) || this.state.selected_stage != this.state.psychics[this.state.client_id]['stage']
+        const color = disabled ? "black" : "blue" ;
+        const cardtype = this.state.selected_stage==0 ? "suspects" : (this.state.selected_stage==1 ? "places" : "things")
+        return(  
+            <img 
+                style={{maxHeight:"100%", maxWidth:"100%", objectFit: "contain", borderColor:color}}
+                src={this.state.image_links['cards'][this.state.selected_stage][this.state.selected_card]}
+                onClick={()=>{
+                    const card = this.state.selected_card
+                    this.makeGuess(card)
+                }}
+            /> 
         )
     }
 
@@ -292,166 +527,67 @@ export default class Main extends React.Component {
     }
 
     ghostallcards = () =>{
+        const cardtype = this.state.selected_stage==0 ? "suspects" : (this.state.selected_stage==1 ? "places" : "things")
         return(
-            Object.keys(this.state.cards).map((cardtype, typeindex) => {
-                return(
-                    <div key={typeindex}>
-                        <h3>{cardtype}</h3>
-                        <div className="hand" >
-                        {
-                            this.state.cards[cardtype].map((card, index) => {
-                                return(
-                                    <div className="card" key={index}>
-                                        <img 
-                                            src={this.state.image_links['cards'][typeindex][card]}
-                                            width="100px"
-                                            height="100px"
-                                        />
-                                    </div>
-                                )
-                            })
-                        }
-                        </div>
-                    </div>
-                )
-            })
+            <div >
+                <h3>{cardtype}</h3>
+                <div className="hand" >
+                {
+                    this.state.cards[cardtype].map((card, index) => {
+                        const color = card === this.state.stories[this.state.selected_psychic][this.state.selected_stage] ? "blue" : "red" ;
+                        const border = card === this.state.selected_card ? "dashed" : "solid" ;
+                        return(
+                            <img 
+                                className="card" 
+                                key={index}
+                                src={this.state.image_links['cards'][this.state.selected_stage][card]}
+                                width="100px"
+                                style = {{borderColor:color, borderStyle:border}}
+                                height="100px"
+                                onClick={(event) => {
+                                    this.setState({selected_card:card})
+                                }}
+                            />
+                        )
+                    })
+                }
+                </div>
+            </div>
         )
     }
 
     psychicallcards = () =>{
-        return(
-            Object.keys(this.state.cards).map((cardtype, typeindex) => {
-                    const disabled= !this.state.ghost['psychics_clued'].includes(this.state.client_id) || typeindex != this.state.psychics[this.state.client_id]['stage']
-                    const color = disabled ? "black" : "blue" ;
-
-                return(
-                    <div key={typeindex}>
-                        <h3>{this.state.psychics[this.state.client_id] && typeindex==this.state.psychics[this.state.client_id]['stage']?cardtype+" << you are here":cardtype}</h3>
-                        <div className="hand" >
-                            {
-                                this.state.cards[cardtype].map((card, index) => {
-                                    return(
-                                        <img 
-                                            className="card" 
-                                            key={index}
-                                            style = {{borderColor:color}}
-                                            onClick={(e)=>{if(!disabled) this.makeGuess(card)}}
-                                            src={this.state.image_links['cards'][typeindex][card]}
-                                            width="100px"
-                                            height="100px"
-                                        />
-                                    )
-                                })
-                            }
-                        </div>
-                    </div>
-                )
-            })
+        const disabled= !this.state.ghost['psychics_clued'].includes(this.state.client_id) || this.state.selected_stage != this.state.psychics[this.state.client_id]['stage']
+        const color = disabled ? "black" : "blue" ;
+        const cardtype = this.state.selected_stage==0 ? "suspects" : (this.state.selected_stage==1 ? "places" : "things")
+        return(   
+            <div>
+                <h3>{cardtype}</h3>
+                <div className="hand" >
+                    {
+                        this.state.cards[cardtype].map((card, index) => {
+                            const border = card === this.state.selected_card ? "dashed" : "solid" ;
+                            return(
+                                <img 
+                                    className="card" 
+                                    key={index}
+                                    style = {{borderColor:color, borderStyle:border}}
+                                    src={this.state.image_links['cards'][this.state.selected_stage][card]}
+                                    width="100px"
+                                    height="100px"
+                                    onClick={(event) => {
+                                        this.setState({selected_card:card})
+                                    }}
+                                />
+                            )
+                        })
+                    }
+                </div>
+            </div>
         )
     }
 
 
-///////////////////////////////////All hands
-
-    allpsychics = () =>{
-        return this.state.client_id == "ghost" ? this.ghostallpsychics() : this.psychicallpsychics()
-    }
-
-    psychicallpsychics = () =>{
-        return(
-            Object.keys(this.state.psychics).map((psychic_id, index) => {
-                return(
-                    <div key={index}>
-                        <p>Psychic {index}</p>
-                        <p>Scenario</p>
-                        <div className="hand">
-                            {
-                                this.state.psychics[psychic_id]["story"].map((card, index) => {
-                                    return(
-                                        <div  className="card"key={index}> 
-                                            <img 
-                                                src={this.state.image_links['cards'][index][card]}
-                                                width="100px"
-                                                height="100px"
-                                            />
-                                        </div>
-                                    )
-                                })
-                            }
-                        </div>
-                        <p>Hand</p>
-                        <div className="hand">
-                            {
-                                this.state.psychics[psychic_id]['hand'].map((card, index) => {
-                                    return(
-                                        <div className="card" key={index}>
-                                            <img 
-                                                src={this.state.image_links['dreams'][card]}
-                                                width="100px"
-                                                height="100px"
-                                            />
-                                        </div>
-                                    )
-                                })
-                            }
-                        </div>
-                    </div>
-                )
-            })
-        )
-    }
-
-    ghostallpsychics = () =>{
-        return(
-            Object.keys(this.state.psychics).map((psychic_id, index) => {
-                return(
-                    <div key={index}>
-                        <button 
-                            type="button" 
-                            id = {index} 
-                            onClick={()=>this.sendDreams(index)}
-                            disabled={this.state.ghost['psychics_clued'].includes(parseInt(psychic_id))}
-                        >
-                            Psychic {index} {psychic_id} nknk
-                        </button>
-                        <div className="hand">
-                            <p>Scenario</p>
-                            {
-                                this.state.stories[psychic_id].map((card, index) => {
-                                    return(
-                                        <div className="card" key={index}>
-                                            <img 
-                                                src={this.state.image_links['cards'][index][card]}
-                                                width="100px"
-                                                height="100px"
-                                            />
-                                        </div>
-                                    )
-                                })
-                            }
-                        </div>
-                        <div className="hand">
-                            <p>Hand</p>
-                            {
-                                this.state.psychics[psychic_id]['hand'].map((card, index) => {
-                                    return(
-                                        <div className="card" key={index}>
-                                            <img 
-                                                src={this.state.image_links['dreams'][card]}
-                                                width="100px"
-                                                height="100px"
-                                            />
-                                        </div>
-                                    )
-                                })
-                            }
-                        </div>
-                        
-                    </div>
-                )
-            })
-        )
-    }
 
 //////////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////Main render/////////////////////////
