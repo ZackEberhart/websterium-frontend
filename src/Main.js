@@ -48,8 +48,8 @@ export default class Main extends React.Component {
     timeout = 250; 
 
     connect = () => {
-        // var ws = new WebSocket("wss://mysterium-backend.herokuapp.com/game");
-        var ws = new WebSocket("ws://localhost:8002/game");
+        var ws = new WebSocket("wss://mysterium-backend.herokuapp.com/game");
+        // var ws = new WebSocket("ws://localhost:8002/game");
         let that = this; // cache the this
         var connectInterval;
 
@@ -254,6 +254,16 @@ export default class Main extends React.Component {
                                 onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[0] = val; return(state)})}}
                             />
                             <button type="button"
+                                onClick={(evt)=> {this.setState((state)=>{state.image_sources[0] = "yGUC9"; return(state)})}}
+                            >
+                                Weird gifs 1
+                            </button>
+                            <button type="button"
+                                onClick={(evt)=> {this.setState((state)=>{state.image_sources[0] = "RfnLT"; return(state)})}}
+                            >
+                                Weird gifs 2
+                            </button>
+                            <button type="button"
                                 onClick={(evt)=> {this.setState((state)=>{state.image_sources[0] = "Tf4Nc"; return(state)})}}
                             >
                                 Simpsons
@@ -264,18 +274,63 @@ export default class Main extends React.Component {
                             <input type="text"  value={this.state.image_sources[1]}
                                 onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[1] = val; return(state)})}}
                             />
+                            <button type="button"
+                                onClick={(evt)=> {this.setState((state)=>{state.image_sources[1] = "cO7wvbR"; return(state)})}}
+                            >
+                                Mystery Wizards
+                            </button>
+                            <button type="button"
+                                onClick={(evt)=> {this.setState((state)=>{state.image_sources[1] = "W6FgJ"; return(state)})}}
+                            >
+                                overwancth
+                            </button>
+                            <button type="button"
+                                onClick={(evt)=> {this.setState((state)=>{state.image_sources[1] = "ageiv"; return(state)})}}
+                            >
+                                Misc. Characters
+                            </button>
                         </div>
                         <div>
                             Place source
                             <input type="text" value={this.state.image_sources[2]}
                                 onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[2] = val; return(state)})}}
                             />
+                            <button type="button"
+                                onClick={(evt)=> {this.setState((state)=>{state.image_sources[2] = "VoCv2"; return(state)})}}
+                            >
+                                Creepy places 1
+                            </button>
+                            <button type="button"
+                                onClick={(evt)=> {this.setState((state)=>{state.image_sources[2] = "MA55k"; return(state)})}}
+                            >
+                                Creepy places 2
+                            </button>
+                            <button type="button"
+                                onClick={(evt)=> {this.setState((state)=>{state.image_sources[2] = "PZqLi"; return(state)})}}
+                            >
+                                Nice rooms
+                            </button>
                         </div>
                         <div>
                             Thing source
                             <input type="text" value={this.state.image_sources[3]}
                                 onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[3] = val; return(state)})}}
                             />
+                            <button type="button"
+                                onClick={(evt)=> {this.setState((state)=>{state.image_sources[3] = "mtzum"; return(state)})}}
+                            >
+                                Bizarro items
+                            </button>
+                            <button type="button"
+                                onClick={(evt)=> {this.setState((state)=>{state.image_sources[3] = "RXFfv"; return(state)})}}
+                            >
+                                Prison inventions
+                            </button>
+                            <button type="button"
+                                onClick={(evt)=> {this.setState((state)=>{state.image_sources[3] = "Cyqqv"; return(state)})}}
+                            >
+                                Beans
+                            </button>
                         </div>
                     </div>
                 </div>
