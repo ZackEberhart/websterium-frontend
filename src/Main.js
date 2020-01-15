@@ -18,18 +18,25 @@ export default class Main extends React.Component {
 
         this.state = {
             ws: null,
-            started:false,
             client_id: null,
-            current_round:1,
+            username:"shnoggo",
+            roomname:"default",
             users:{},
-            cards:{},
+            joined:false,
+            started:false,
+
             image_sources:["yGUC9", "cO7wvbR", "VoCv2", "mtzum"],
             image_links:{},
+            cards:{},
             stories: [],
+
+            current_round:1,
             known_stories:[],
-            selected:[],
             psychics:[],
+            psychic_names:{},
             ghost:{"hand":[], 'psychics_clued':[]},
+
+            selected:[],
             selected_psychic:0,
             selected_dream:null,
             selected_card:null,
@@ -48,8 +55,8 @@ export default class Main extends React.Component {
     timeout = 250; 
 
     connect = () => {
-        var ws = new WebSocket("wss://mysterium-backend.herokuapp.com/game");
-        // var ws = new WebSocket("ws://localhost:8002/game");
+        // var ws = new WebSocket("wss://mysterium-backend.herokuapp.com/game");
+        var ws = new WebSocket("ws://localhost:8002/game");
         let that = this; // cache the this
         var connectInterval;
 
@@ -67,7 +74,14 @@ export default class Main extends React.Component {
             var data = JSON.parse(evt.data)
             const message = data["message"]
             if(data["type"] === "user_list"){
-                this.showUserList(message)
+                this.setUserList(message)
+                if(this.state.started){
+                    wrong.play(1.0)
+                    alert("Somebody left the room. In the future the game will be able continue, sorry for the inconvenience.")
+                    this.setState({started:false}) 
+                }
+            }else if(data['type'] === "join"){
+                 this.setState({joined: true, roomname:message})
             }else if(data['type'] === "client_id"){
                  this.setState({'client_id': message})
                  if(message != "ghost") this.setState({'selected_psychic': parseInt(message)})
@@ -124,13 +138,23 @@ export default class Main extends React.Component {
     ///////////////////////////////Funcs/////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////
 
-    showUserList = (message) =>{
-        this.setState({'users': message})
+    setUserList = (message) =>{
+        var psychic_names = {}
+        for(var user_id in message){
+            if(message[user_id]["pid"] >= 0){
+                psychic_names[message[user_id]["pid"]] = message[user_id]["name"]
+            }
+        }
+        this.setState({users: message, psychic_names:psychic_names})
     }
 
     startGame = (message) =>{
         this.setState({
             started: true,
+            selected:[],
+            selected_psychic:0,
+            selected_dream:null,
+            selected_stage:0,
             cards: message,
         })
         if(this.state.client_id == "ghost"){
@@ -144,9 +168,22 @@ export default class Main extends React.Component {
         }
     }
 
+    leaveRoom = () =>{
+        this.send('leave', "leave")
+        this.setState({joined: false})
+    }
+
     updateState = (message) =>{
         //If it's a new round, correctly re-render view and play noises
-        if(this.isNewRound(message)){
+        if(message["status"] == "lost"){
+            wrong.play(1.0)
+            alert("You win!")
+            this.setState({started:false}) 
+        }else if(message["status"] == "won"){
+            correct.play(1.0)
+            alert("You didn't make it. Better luck next time.")
+            this.setState({started:false}) 
+        }else if(this.isNewRound(message)){
             if(this.wasCorrect(message, this.state.selected_psychic)){
                 this.setState({
                     selected_stage: message['psychics'][this.state.selected_psychic]['stage'],
@@ -168,7 +205,7 @@ export default class Main extends React.Component {
             }else{
                 if(this.wasCorrect(message, this.state.client_id)){
                     correct.play(1.0)
-                }else{
+                }else if(this.state.psychics[this.state.client_id]['stage']<=2){
                     wrong.play(1.0)
                 }
             }
@@ -184,7 +221,7 @@ export default class Main extends React.Component {
     }
 
     handleRejection = (message) =>{
-        console.log(message)
+        alert(message)
     }
 
     sendDreams = (psychic) =>{
@@ -232,113 +269,155 @@ export default class Main extends React.Component {
 
     anteroom = () => {
         const users = Object.keys(this.state.users).map(key => 
-            <li key={key}>
-                {key}: {this.state.users[key]}
-            </li>
+            <p key={key}>
+                {this.state.users[key]["name"]}: {this.state.users[key]["role"]}
+            </p>
         )
 
-        return(
-            <div className="container">
-                <h1>Anteroom</h1>
-                <div className = "row">
-                    <div>
-                        {users}
-                        <button type="button" onClick={() => this.send('setRole', 'ghost')}>Ghost</button>
-                        <button type="button" onClick={() => this.send('setRole', 'psychic')}>Psychic</button>
-                    </div>
-                    <div style={{flexGrow:1}}/>
-                    <div>
-                        <div>
-                            Dream source
-                            <input type="text" value={this.state.image_sources[0]} 
-                                onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[0] = val; return(state)})}}
+        if(!this.state.joined){
+            return(
+                <div className="container" style={{justifyContent:"center",alignItems:"center"}}>
+                    <h1>Websterium</h1>
+                    <div className="nicebox" style={{padding:"20px", fontSize:"1.5em"}}>
+                        <div className = "row">
+                            Room name: 
+                            <input type="text"  value={this.state.roomname}
+                                onChange={(evt)=> {const val = evt.target.value; this.setState({roomname:val})}}
                             />
-                            <button type="button"
-                                onClick={(evt)=> {this.setState((state)=>{state.image_sources[0] = "yGUC9"; return(state)})}}
-                            >
-                                Weird gifs 1
-                            </button>
-                            <button type="button"
-                                onClick={(evt)=> {this.setState((state)=>{state.image_sources[0] = "RfnLT"; return(state)})}}
-                            >
-                                Weird gifs 2
-                            </button>
-                            <button type="button"
-                                onClick={(evt)=> {this.setState((state)=>{state.image_sources[0] = "Tf4Nc"; return(state)})}}
-                            >
-                                Simpsons
-                            </button>
                         </div>
-                        <div>
-                            Suspect source
-                            <input type="text"  value={this.state.image_sources[1]}
-                                onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[1] = val; return(state)})}}
+                        <br/>
+                        <div className = "row">
+                            User name: 
+                            <input type="text"  value={this.state.username}
+                                onChange={(evt)=> {const val = evt.target.value; this.setState({username:val})}}
                             />
-                            <button type="button"
-                                onClick={(evt)=> {this.setState((state)=>{state.image_sources[1] = "cO7wvbR"; return(state)})}}
-                            >
-                                Mystery Wizards
-                            </button>
-                            <button type="button"
-                                onClick={(evt)=> {this.setState((state)=>{state.image_sources[1] = "W6FgJ"; return(state)})}}
-                            >
-                                overwancth
-                            </button>
-                            <button type="button"
-                                onClick={(evt)=> {this.setState((state)=>{state.image_sources[1] = "ageiv"; return(state)})}}
-                            >
-                                Misc. Characters
-                            </button>
                         </div>
-                        <div>
-                            Place source
-                            <input type="text" value={this.state.image_sources[2]}
-                                onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[2] = val; return(state)})}}
-                            />
-                            <button type="button"
-                                onClick={(evt)=> {this.setState((state)=>{state.image_sources[2] = "VoCv2"; return(state)})}}
-                            >
-                                Creepy places 1
-                            </button>
-                            <button type="button"
-                                onClick={(evt)=> {this.setState((state)=>{state.image_sources[2] = "MA55k"; return(state)})}}
-                            >
-                                Creepy places 2
-                            </button>
-                            <button type="button"
-                                onClick={(evt)=> {this.setState((state)=>{state.image_sources[2] = "PZqLi"; return(state)})}}
-                            >
-                                Nice rooms
-                            </button>
-                        </div>
-                        <div>
-                            Thing source
-                            <input type="text" value={this.state.image_sources[3]}
-                                onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[3] = val; return(state)})}}
-                            />
-                            <button type="button"
-                                onClick={(evt)=> {this.setState((state)=>{state.image_sources[3] = "mtzum"; return(state)})}}
-                            >
-                                Bizarro items
-                            </button>
-                            <button type="button"
-                                onClick={(evt)=> {this.setState((state)=>{state.image_sources[3] = "RXFfv"; return(state)})}}
-                            >
-                                Prison inventions
-                            </button>
-                            <button type="button"
-                                onClick={(evt)=> {this.setState((state)=>{state.image_sources[3] = "Cyqqv"; return(state)})}}
-                            >
-                                Beans
-                            </button>
+                        <br/>
+                        <div className = "row">
+                            <button type="button" onClick={() => this.send('join', {"roomname": this.state.roomname, "username":this.state.username})}>Join room</button>
                         </div>
                     </div>
                 </div>
-                <div className = "row">
-                    <button type="button" onClick={() => this.send('startGame', this.state.image_sources)}>Start</button>
+            )
+        }else{
+            return(
+                <div className="container" style={{justifyContent:"center",alignItems:"center"}}>
+                    <h2>{this.state.roomname}</h2>
+                        <div className = "nicebox" style={{display:'flex', flexDirection:'column', justifyContent:"space-between", width:"300px", padding:"10px", flexGrow:1}}>
+                            <div>
+                                <h3>Players</h3>
+                                {users}
+                            </div>
+                            <div>
+                            <h3>Choose role:</h3>
+                            <button type="button" onClick={() => this.send('setRole', 'ghost')}>Ghost</button>
+                            <button type="button" onClick={() => this.send('setRole', 'psychic')}>Psychic</button>
+                            </div>
+                        </div>
+                        <br/>
+                        <div className = "row">
+                            <button type="button" onClick={() => this.send('startGame', this.state.image_sources)}>Start game</button>
+                            <button type="button" onClick={this.leaveRoom}>Leave room</button>
+                        </div>
+                        <div style={{flexGrow:1}}/>
+                        <div className = "nicebox" style={{padding:"10px"}}>
+                            <h3>
+                                Image sources 
+                                <span style={{fontWeight:"normal", fontSize:".8em"}}> (Must be IDs of Imgur albums. Will only apply if *you* start the game.)</span>
+                            </h3>
+                            <div>
+                                Dream source
+                                <input type="text" value={this.state.image_sources[0]} 
+                                    onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[0] = val; return(state)})}}
+                                />
+                                <button type="button"
+                                    onClick={(evt)=> {this.setState((state)=>{state.image_sources[0] = "yGUC9"; return(state)})}}
+                                >
+                                    Weird gifs 1
+                                </button>
+                                <button type="button"
+                                    onClick={(evt)=> {this.setState((state)=>{state.image_sources[0] = "RfnLT"; return(state)})}}
+                                >
+                                    Weird gifs 2
+                                </button>
+                                <button type="button"
+                                    onClick={(evt)=> {this.setState((state)=>{state.image_sources[0] = "Tf4Nc"; return(state)})}}
+                                >
+                                    Simpsons
+                                </button>
+                                <button type="button"
+                                    onClick={(evt)=> {this.setState((state)=>{state.image_sources[0] = "vdLZg"; return(state)})}}
+                                >
+                                    Zdzisław Beksiński
+                                </button>
+                            </div>
+                            <div>
+                                Suspect source
+                                <input type="text"  value={this.state.image_sources[1]}
+                                    onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[1] = val; return(state)})}}
+                                />
+                                <button type="button"
+                                    onClick={(evt)=> {this.setState((state)=>{state.image_sources[1] = "cO7wvbR"; return(state)})}}
+                                >
+                                    Mystery Wizards
+                                </button>
+                                <button type="button"
+                                    onClick={(evt)=> {this.setState((state)=>{state.image_sources[1] = "W6FgJ"; return(state)})}}
+                                >
+                                    overwancth
+                                </button>
+                                <button type="button"
+                                    onClick={(evt)=> {this.setState((state)=>{state.image_sources[1] = "ageiv"; return(state)})}}
+                                >
+                                    Misc. Characters
+                                </button>
+                            </div>
+                            <div>
+                                Place source
+                                <input type="text" value={this.state.image_sources[2]}
+                                    onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[2] = val; return(state)})}}
+                                />
+                                <button type="button"
+                                    onClick={(evt)=> {this.setState((state)=>{state.image_sources[2] = "VoCv2"; return(state)})}}
+                                >
+                                    Creepy places 1
+                                </button>
+                                <button type="button"
+                                    onClick={(evt)=> {this.setState((state)=>{state.image_sources[2] = "MA55k"; return(state)})}}
+                                >
+                                    Creepy places 2
+                                </button>
+                                <button type="button"
+                                    onClick={(evt)=> {this.setState((state)=>{state.image_sources[2] = "PZqLi"; return(state)})}}
+                                >
+                                    Nice rooms
+                                </button>
+                            </div>
+                            <div>
+                                Thing source
+                                <input type="text" value={this.state.image_sources[3]}
+                                    onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[3] = val; return(state)})}}
+                                />
+                                <button type="button"
+                                    onClick={(evt)=> {this.setState((state)=>{state.image_sources[3] = "mtzum"; return(state)})}}
+                                >
+                                    Bizarro items
+                                </button>
+                                <button type="button"
+                                    onClick={(evt)=> {this.setState((state)=>{state.image_sources[3] = "RXFfv"; return(state)})}}
+                                >
+                                    Prison inventions
+                                </button>
+                                <button type="button"
+                                    onClick={(evt)=> {this.setState((state)=>{state.image_sources[3] = "Cyqqv"; return(state)})}}
+                                >
+                                    Beans
+                                </button>
+                            </div>
+                        </div>
                 </div>
-            </div>
-        )
+            )
+        }
     }
 
     gameroom = () => {
@@ -413,10 +492,10 @@ export default class Main extends React.Component {
                             selected_psychic:parseInt(this.state.client_id)
                         })
                     }}
-                >
-                    <p>Psychic {this.state.client_id}</p>
-                    <p>Stage {this.state.psychics[this.state.client_id]['stage']}</p>
-                </div>
+                    >
+                        <p>{this.state.psychic_names[this.state.client_id]}</p>
+                        <p>Stage {this.state.psychics[this.state.client_id]['stage']}</p>
+                    </div>
                     {Object.keys(this.state.psychics).map((psychic_id, index) => {
                         if(psychic_id != this.state.client_id){
                             const border = this.state.selected_psychic === parseInt(psychic_id) ? "dashed" : "solid";
@@ -437,7 +516,7 @@ export default class Main extends React.Component {
                                         }
                                     }}
                                 >
-                                    <p>Psychic {index}</p>
+                                    <p>{this.state.psychic_names[index]}</p>
                                     <p>Stage {this.state.psychics[psychic_id]['stage']}</p>
                                 </div>
                             )
@@ -468,7 +547,7 @@ export default class Main extends React.Component {
                                 }
                             }}
                         >
-                            <p>Psychic {index}</p>
+                            <p>{this.state.psychic_names[index]}</p>
                             <p>Stage {this.state.psychics[psychic_id]['stage']}</p>
                         </div>
                     )
@@ -487,7 +566,7 @@ export default class Main extends React.Component {
         if(this.state.client_id!== null && Object.keys(this.state.psychics).length > parseInt(this.state.client_id)){
             return(
                 <div style={{textAlign:'center'}}>
-                    <h3>dreams</h3>
+                    <h3>Clues</h3>
                     <div className="hand">
                         {this.state.psychics[this.state.selected_psychic]['hand'].map((card, index) => {
                             const border = card === this.state.selected_dream ? "dashed" : "solid" ;
@@ -515,7 +594,7 @@ export default class Main extends React.Component {
         if(this.state.selected_psychic!=null){
             return(
                 <div style={{textAlign:'center'}} >
-                    <h3>dreams</h3>
+                    <h3>Clues</h3>
                     <div className="hand">
                         {this.state.ghost["hand"].map((card, index) => {
                             const color = this.state.selected.includes(card) ? "blue" : "red";
@@ -555,13 +634,13 @@ export default class Main extends React.Component {
                          <button 
                             type="button" 
                             onClick={()=>this.sendDreams(this.state.selected_psychic)}
-                            disabled={this.state.ghost['psychics_clued'].includes(parseInt(this.state.selected_psychic))}
+                            disabled={this.state.selected_stage>2 || this.state.ghost['psychics_clued'].includes(parseInt(this.state.selected_psychic))}
                         >
-                            Send {this.state.selected.length} dreams to Psychic {this.state.selected_psychic}
+                            Send {this.state.selected.length} clues to {this.state.psychic_names[this.state.selected_psychic]}
                         </button>
                     </div>
                     <hr/>
-                    <h3>Psychic {this.state.selected_psychic}'s dreams</h3>
+                    <h3>{this.state.psychic_names[this.state.selected_psychic]}'s clues</h3>
                     <div className="hand">
                         {this.state.psychics[this.state.selected_psychic]['hand'].map((card, index) => {
                             const border = card === this.state.selected_dream ? "dashed" : "solid" ;
@@ -595,21 +674,37 @@ export default class Main extends React.Component {
     }
 
     ghostselecteddream = () =>{
-        return(
-            <img 
-                style={{maxHeight:"100%", maxWidth:"100%", objectFit: "contain"}}
-                src={this.state.image_links['dreams'][this.state.selected_dream]}
-            />
-        )
+        if(this.state.selected_dream){
+            return(
+                <img 
+                    style={{maxHeight:"100%", maxWidth:"100%", objectFit: "contain"}}
+                    src={this.state.image_links['dreams'][this.state.selected_dream]}
+                />
+            )
+        }else{
+            return(
+                <div style={{height:"80%", width:"80%", backgroundColor:"#CCC", display:"flex", justifyContent:"center", alignItems:"center"}}> 
+                    <h3 style={{color:"#888"}}>[Select a clue to display here]</h3>
+                </div>   
+            )
+        }
     }
 
     psychicselecteddream = () =>{
-        return(   
-            <img 
-                style={{maxHeight:"100%", maxWidth:"100%", objectFit: "contain"}}
-                src={this.state.image_links['dreams'][this.state.selected_dream]}
-            />
-        )
+        if(this.state.selected_dream){
+            return(
+                <img 
+                    style={{maxHeight:"100%", maxWidth:"100%", objectFit: "contain"}}
+                    src={this.state.image_links['dreams'][this.state.selected_dream]}
+                />
+            )
+        }else{
+            return(
+                <div style={{height:"80%", width:"80%", backgroundColor:"#CCC", display:"flex", justifyContent:"center", alignItems:"center"}}> 
+                    <h3 style={{color:"#888"}}>[Select a clue to display here]</h3>
+                </div>   
+            )
+        }
     }
 
 ///////////////////////////////////Selected card
@@ -619,37 +714,54 @@ export default class Main extends React.Component {
     }
 
     ghostselectedcard = () =>{
-        return(
-            <img 
-                style={{maxHeight:"100%", maxWidth:"100%", objectFit: "contain"}}
-                src={this.state.image_links['cards'][this.state.selected_stage][this.state.selected_card]}
-            />
-        )
+        const cardtype = this.state.selected_stage==0 ? "suspect" : (this.state.selected_stage==1 ? "place" : "thing")
+        if(this.state.selected_card){
+            return(
+                <img 
+                    style={{maxHeight:"100%", maxWidth:"100%", objectFit: "contain"}}
+                    src={this.state.image_links['cards'][this.state.selected_stage][this.state.selected_card]}
+                />
+            )
+        }else{
+            return(
+                <div style={{height:"80%", width:"80%", backgroundColor:"#CCC", display:"flex", justifyContent:"center", alignItems:"center"}}> 
+                    <h3 style={{color:"#888"}}>[Select a {cardtype.substring(0, cardtype.length-1)} to display here]</h3>
+                </div>   
+            )
+        }
     }
 
     psychicselectedcard = () =>{
         const disabled= !this.state.ghost['psychics_clued'].includes(this.state.client_id) || this.state.selected_stage != this.state.psychics[this.state.client_id]['stage']
         const color = disabled ? "black" : "blue" ;
         const cardtype = this.state.selected_stage==0 ? "suspects" : (this.state.selected_stage==1 ? "places" : "things")
-        return(  
-            <div  style={{height:"100%", width:"100%", display:'flex', flexDirection:'column', justifyContent:'center'}}>
-                <img 
-                    style={{maxHeight:"95%", maxWidth:"100%", objectFit: "contain", borderColor:color}}
-                    src={this.state.image_links['cards'][this.state.selected_stage][this.state.selected_card]}
-                />
-                <div style={{textAlign:'center'}} >
-                    <button 
-                        type="button" 
-                        disabled = {!this.cardGuessable(this.state.selected_card) || this.cardWaiting(0)}
-                        onClick={()=>{
-                            this.makeGuess(this.state.selected_card)
-                        }}
-                    >
-                        Guess
-                    </button>
-                 </div> 
-            </div>
-        )
+        if(this.state.selected_card){
+            return(  
+                <div  style={{height:"100%", width:"100%", display:'flex', flexDirection:'column', justifyContent:'center'}}>
+                    <img 
+                        style={{maxHeight:"95%", maxWidth:"100%", objectFit: "contain", borderColor:color}}
+                        src={this.state.image_links['cards'][this.state.selected_stage][this.state.selected_card]}
+                    />
+                    <div style={{textAlign:'center'}} >
+                        <button 
+                            type="button" 
+                            disabled = {!this.cardGuessable(this.state.selected_card) || this.cardWaiting(0)}
+                            onClick={()=>{
+                                this.makeGuess(this.state.selected_card)
+                            }}
+                        >
+                            Guess
+                        </button>
+                     </div> 
+                </div>
+            )
+        }else{
+            return(
+                <div style={{height:"80%", width:"80%", backgroundColor:"#CCC", display:"flex", justifyContent:"center", alignItems:"center"}}> 
+                    <h3 style={{color:"#888"}}>[Select a {cardtype.substring(0, cardtype.length-1)} to display here]</h3>
+                </div>   
+            )
+        }
     }
 
 ///////////////////////////////////All cards

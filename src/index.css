@@ -1,6 +1,12 @@
 html{
 	width:100vw;
-	background-color: #e7e7e7 !important;
+	background:
+linear-gradient(135deg, #FCFCFC 25%, transparent 25%) -50px 0,
+linear-gradient(225deg, #FCFCFC 25%, transparent 25%) -50px 0,
+linear-gradient(315deg, #FCFCFC 25%, transparent 25%),
+linear-gradient(45deg, #FCFCFC 25%, transparent 25%);
+background-size: 100px 100px;
+background-color: #FCD7BA;
 }
 
 body {
@@ -13,11 +19,19 @@ body {
   width:100%;
   height:100vh;
   padding:0px;
+	font-family:'Lucida Console', Monaco, monospace;
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;
+}
+
+h1{
+	font-size:5em; 
+}
+h2{
+	font-size:3em; 
 }
 
 #root{
