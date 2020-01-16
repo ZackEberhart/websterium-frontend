@@ -5,6 +5,8 @@ import correctSound from './assets/correct.wav';
 import guessSound from './assets/guess.wav';
 import upnextSound from './assets/upnext.wav';
 import wrongSound from './assets/wrong.wav';
+import { IconContext } from "react-icons";
+import { FaGhost, FaHome, FaEye, FaHammer, FaUserNinja} from "react-icons/fa";
 
 const correct = new UIfx(correctSound, {volume: 1.0});
 const guess = new UIfx(guessSound, {volume: 1.0});
@@ -19,13 +21,13 @@ export default class Main extends React.Component {
         this.state = {
             ws: null,
             client_id: null,
-            username:"shnoggo",
+            username:"",
             roomname:"default",
             users:{},
             joined:false,
             started:false,
 
-            image_sources:["yGUC9", "cO7wvbR", "VoCv2", "mtzum"],
+            image_sources:["yGUC9", "NUIuAHY", "VoCv2", "mtzum"],
             image_links:{},
             cards:{},
             stories: [],
@@ -77,7 +79,7 @@ export default class Main extends React.Component {
                 this.setUserList(message)
                 if(this.state.started){
                     wrong.play(1.0)
-                    alert("Somebody left the room. In the future the game will be able continue, sorry for the inconvenience.")
+                    alert("One of the players left the room, so you all lose.")
                     this.setState({started:false}) 
                 }
             }else if(data['type'] === "join"){
@@ -133,7 +135,6 @@ export default class Main extends React.Component {
         this.state.ws.send(message);
     }
 
-
 //////////////////////////////////////////////////////////////////////////////////////////
     ///////////////////////////////Funcs/////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -152,18 +153,20 @@ export default class Main extends React.Component {
         this.setState({
             started: true,
             selected:[],
-            selected_psychic:0,
             selected_dream:null,
             selected_stage:0,
             cards: message,
         })
         if(this.state.client_id == "ghost"){
             this.setState({
-                selected_card: this.state.stories[0][0]
+                selected_card: this.state.stories[0][0],
+                selected_psychic:0
             })
         }else{
             this.setState({
-                selected_card: this.state.cards["suspects"][0]
+                selected_card: this.state.cards["suspects"][0],
+                selected_psychic:this.state.client_id,
+
             })
         }
     }
@@ -177,11 +180,11 @@ export default class Main extends React.Component {
         //If it's a new round, correctly re-render view and play noises
         if(message["status"] == "lost"){
             wrong.play(1.0)
-            alert("You win!")
+            alert("You didn't make it. Better luck next time.")
             this.setState({started:false}) 
         }else if(message["status"] == "won"){
             correct.play(1.0)
-            alert("You didn't make it. Better luck next time.")
+            alert("You win!")
             this.setState({started:false}) 
         }else if(this.isNewRound(message)){
             if(this.wasCorrect(message, this.state.selected_psychic)){
@@ -258,8 +261,24 @@ export default class Main extends React.Component {
         }
     }
 
+    getGhostUser = () =>{
+        for(var key in this.state.users){
+            if(this.state.users[key]['role'] == "Ghost"){
+                return this.state.users[key]['name']
+            }
+        }
+        return ""
+    }
 
-
+    getPsychicUsers = () =>{
+        var psychics = []
+        for(var key in this.state.users){
+            if(this.state.users[key]['role'] != "Ghost"){
+                psychics.push(this.state.users[key]['name'])
+            }
+        }
+        return psychics
+    }
 
 //////////////////////////////////////////////////////////////////////////////////////////
     ///////////////////////////////Components/////////////////////////////////
@@ -268,12 +287,6 @@ export default class Main extends React.Component {
 ///////////////////////////////////Main rooms
 
     anteroom = () => {
-        const users = Object.keys(this.state.users).map(key => 
-            <p key={key}>
-                {this.state.users[key]["name"]}: {this.state.users[key]["role"]}
-            </p>
-        )
-
         if(!this.state.joined){
             return(
                 <div className="container" style={{justifyContent:"center",alignItems:"center"}}>
@@ -300,26 +313,81 @@ export default class Main extends React.Component {
                 </div>
             )
         }else{
-            return(
-                <div className="container" style={{justifyContent:"center",alignItems:"center"}}>
-                    <h2>{this.state.roomname}</h2>
-                        <div className = "nicebox" style={{display:'flex', flexDirection:'column', justifyContent:"space-between", width:"300px", padding:"10px", flexGrow:1}}>
+            const users = <div style={{flex:1, display:'flex', flexDirection:'column'}}>
+                <div style={{backgroundColor:"#791E94", color:"#F7F7F7", padding:"10px"}}>
+                    <div className="row" style={{alignItems:"center", justifyContent:"space-around"}}>
+                        <IconContext.Provider value={{ size:"2em", color: "white", className: "global-class-name" }}>
                             <div>
-                                <h3>Players</h3>
-                                {users}
+                                <FaGhost />
                             </div>
-                            <div>
-                            <h3>Choose role:</h3>
-                            <button type="button" onClick={() => this.send('setRole', 'ghost')}>Ghost</button>
-                            <button type="button" onClick={() => this.send('setRole', 'psychic')}>Psychic</button>
+                        </IconContext.Provider>
+                        <div style={{textAlign:"center"}}>
+                            <h3 style={{margin:'0px'}}>Ghost</h3>
+                            <div >
+                                {this.getGhostUser()}
                             </div>
                         </div>
+                        <IconContext.Provider value={{ size:"2em", color: "white", className: "global-class-name" }}>
+                            <div>
+                                <FaGhost />
+                            </div>
+                        </IconContext.Provider>
+                    </div>
+                </div>
+                <div style={{flex:1, backgroundColor:"#41D3BD", padding:"10px"}}>
+                    <div className="row" style={{ alignItems:"center", justifyContent:"space-around"}}>
+                        <IconContext.Provider value={{ size:"2em", color: "black", className: "global-class-name" }}>
+                            <div>
+                                <FaEye />
+                            </div>
+                        </IconContext.Provider>
+                        <div style={{textAlign:"center"}}>
+                            <h3 style={{margin:'0px'}}>Psychics</h3>
+                            <div>
+                                {this.getPsychicUsers().map((username, index) => 
+                                    <div key={index}>
+                                        {username}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <IconContext.Provider value={{ size:"2em", color: "black", className: "global-class-name" }}>
+                            <div>
+                                <FaEye />
+                            </div>
+                        </IconContext.Provider>
+                    </div>
+                </div>
+            </div>
+            return(
+                <div className="container" style={{justifyContent:"center",alignItems:"center"}}>
+                    <h2>Room: {this.state.roomname}</h2>
+                        <div className = "nicebox" style={{padding:'0px', display:'flex', width:"50%", minWidth:"300px", overflow: 'scroll', flex:1}}>
+                            {users}
+                        </div>
                         <br/>
+                        <div className="row">
+                                <h3>Select role:</h3>
+                                <button type="button" onClick={() => this.send('setRole', 'ghost')}>
+                                    <IconContext.Provider value={{ size:"2em", color: "black", className: "global-class-name" }}>
+                                        <div>
+                                            <FaGhost />
+                                        </div>
+                                    </IconContext.Provider>
+                                </button>
+                                <button type="button" onClick={() => this.send('setRole', 'psychic')}>
+                                    <IconContext.Provider value={{ size:"2em", color: "black", className: "global-class-name" }}>
+                                        <div>
+                                            <FaEye />
+                                        </div>
+                                    </IconContext.Provider>
+                                </button>
+                            </div>
                         <div className = "row">
                             <button type="button" onClick={() => this.send('startGame', this.state.image_sources)}>Start game</button>
                             <button type="button" onClick={this.leaveRoom}>Leave room</button>
                         </div>
-                        <div style={{flexGrow:1}}/>
+                        <br/>
                         <div className = "nicebox" style={{padding:"10px"}}>
                             <h3>
                                 Image sources 
@@ -357,14 +425,14 @@ export default class Main extends React.Component {
                                     onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[1] = val; return(state)})}}
                                 />
                                 <button type="button"
-                                    onClick={(evt)=> {this.setState((state)=>{state.image_sources[1] = "cO7wvbR"; return(state)})}}
+                                    onClick={(evt)=> {this.setState((state)=>{state.image_sources[1] = "NUIuAHY"; return(state)})}}
                                 >
-                                    Mystery Wizards
+                                    Smash Bros.
                                 </button>
                                 <button type="button"
                                     onClick={(evt)=> {this.setState((state)=>{state.image_sources[1] = "W6FgJ"; return(state)})}}
                                 >
-                                    overwancth
+                                    Ovrvwatcth
                                 </button>
                                 <button type="button"
                                     onClick={(evt)=> {this.setState((state)=>{state.image_sources[1] = "ageiv"; return(state)})}}
@@ -388,9 +456,14 @@ export default class Main extends React.Component {
                                     Creepy places 2
                                 </button>
                                 <button type="button"
-                                    onClick={(evt)=> {this.setState((state)=>{state.image_sources[2] = "PZqLi"; return(state)})}}
+                                    onClick={(evt)=> {this.setState((state)=>{state.image_sources[2] = "9JUQg"; return(state)})}}
                                 >
-                                    Nice rooms
+                                    Fighting stages
+                                </button>
+                                <button type="button"
+                                    onClick={(evt)=> {this.setState((state)=>{state.image_sources[2] = "jhxPqxh"; return(state)})}}
+                                >
+                                    Smash stages
                                 </button>
                             </div>
                             <div>
@@ -413,6 +486,11 @@ export default class Main extends React.Component {
                                 >
                                     Beans
                                 </button>
+                                <button type="button"
+                                    onClick={(evt)=> {this.setState((state)=>{state.image_sources[3] = "VyAWb"; return(state)})}}
+                                >
+                                    Other ways to die
+                                </button>
                             </div>
                         </div>
                 </div>
@@ -434,7 +512,44 @@ export default class Main extends React.Component {
         ):(
             <div className = "row" style={{overflow:'visible', minHeight: 0, flex:1}}>
                 <div className="nicebox" style={{minHeight: 0, flex:2, overflow:'scroll', margin:'3px', padding:'3px', display:'flex', alignItems:'center', justifyContent:"center"}}>
-                    Big winner!
+                    <div className="row">
+                        <div style={{width:"33%", padding:"3px", boxSizing:"border-box", textAlign:"center"}}>
+                            <IconContext.Provider value={{ size:"3em", color:"black", className: "global-class-name" }}>
+                                <div>
+                                    <FaUserNinja />
+                                </div>
+                            </IconContext.Provider>
+                            <br/>
+                            <img 
+                                style={{maxHeight:"70%", maxWidth:"100%", objectFit: "contain"}}
+                                src={this.state.image_links['cards'][0][this.state.psychics[this.state.selected_psychic]["story"][0]]}
+                            /> 
+                        </div>
+                        <div style={{width:"33%", padding:"3px", boxSizing:"border-box", textAlign:"center"}}>
+                            <IconContext.Provider value={{ size:"3em", color:"black", className: "global-class-name" }}>
+                                <div>
+                                    <FaHome />
+                                </div>
+                            </IconContext.Provider>
+                            <br/>
+                            <img 
+                                style={{maxHeight:"70%", maxWidth:"100%", objectFit: "contain"}}
+                                src={this.state.image_links['cards'][1][this.state.psychics[this.state.selected_psychic]["story"][1]]}
+                            />
+                        </div>
+                        <div style={{width:"33%", padding:"3px", boxSizing:"border-box", textAlign:"center"}}>
+                            <IconContext.Provider value={{ size:"3em", color:"black", className: "global-class-name" }}>
+                                <div>
+                                    <FaHammer />
+                                </div>
+                            </IconContext.Provider>
+                            <br/>
+                            <img 
+                                style={{maxHeight:"70%", maxWidth:"100%", objectFit: "contain"}}
+                                src={this.state.image_links['cards'][2][this.state.psychics[this.state.selected_psychic]["story"][2]]}
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
         )
@@ -479,11 +594,18 @@ export default class Main extends React.Component {
     }
 
     psychicallpsychics = () =>{
+        const border = this.state.selected_psychic === this.state.client_id ? "dashed" : "solid"
+        const bgcolor = this.state.psychics[this.state.client_id].current_guess != null ? "green" : (this.state.ghost['psychics_clued'].includes(parseInt(this.state.client_id))? "orange" : "transparent")         
         return(
-                <div className = "hand" style={{flex:1,  height:'100%', overflow:'scroll', "textAlign":'center'}}>
+            <div className = "hand" style={{flex:1,  justifyContent:"space-between", height:'100%', overflow:'scroll', "textAlign":'center'}}>
+                <div style={{flex:1, textAlign:"left"}}>
+                    <h3 style={{margin:"0px"}}>Round</h3>
+                    <h2 style={{margin:"0px"}}>{this.state.current_round}/7</h2>
+                </div>
+                <div className = "hand">
                     <div 
                     className="card"
-                    style = {{backgroundColor: this.state.psychics[this.state.client_id].current_guess != null ? "green" : (this.state.ghost['psychics_clued'].includes(parseInt(this.state.client_id))? "orange" : "transparent"), borderColor:"blue", borderStyle:this.state.selected_psychic === this.state.client_id ? "dashed" : "solid"}}
+                    style = {{borderColor:"blue", backgroundColor:bgcolor, borderStyle:border, display:'flex', flexDirection:"column", alignItems:"stretch", justifyContent:"space-around"}}
                     onClick={()=>{
                         this.setState({
                             selected_stage: this.state.psychics[this.state.client_id]['stage'],
@@ -493,8 +615,24 @@ export default class Main extends React.Component {
                         })
                     }}
                     >
-                        <p>{this.state.psychic_names[this.state.client_id]}</p>
-                        <p>Stage {this.state.psychics[this.state.client_id]['stage']}</p>
+                        <div>{this.state.psychic_names[this.state.client_id]}</div>
+                        <div className="row" style={{justifyContent:"space-around"}}>
+                                <IconContext.Provider value={{ size:"1em", color: this.state.psychics[this.state.client_id].stage==0?"blue":(this.state.psychics[this.state.client_id].stage>0?"black":"gray"), className: "global-class-name" }}>
+                                    <div>
+                                        <FaUserNinja />
+                                    </div>
+                                </IconContext.Provider>
+                                <IconContext.Provider value={{ size:"1em", color: this.state.psychics[this.state.client_id].stage==1?"blue":(this.state.psychics[this.state.client_id].stage>1?"black":"gray"), className: "global-class-name" }}>
+                                    <div>
+                                        <FaHome />
+                                    </div>
+                                </IconContext.Provider>
+                                <IconContext.Provider value={{ size:"1em", color: this.state.psychics[this.state.client_id].stage==2?"blue":(this.state.psychics[this.state.client_id].stage>2?"black":"gray"), className: "global-class-name" }}>
+                                    <div>
+                                        <FaHammer />
+                                    </div>
+                                </IconContext.Provider>
+                            </div>
                     </div>
                     {Object.keys(this.state.psychics).map((psychic_id, index) => {
                         if(psychic_id != this.state.client_id){
@@ -504,7 +642,7 @@ export default class Main extends React.Component {
                                 <div 
                                     key={index} 
                                     className="card"
-                                    style = {{borderStyle:border, backgroundColor:bgcolor}}
+                                    style = {{backgroundColor:bgcolor, borderStyle:border, display:'flex', flexDirection:"column", alignItems:"stretch", justifyContent:"space-around"}}
                                     onClick={()=>{
                                         if(psychic_id != this.state.selected_psychic){
                                             this.setState({
@@ -516,42 +654,85 @@ export default class Main extends React.Component {
                                         }
                                     }}
                                 >
-                                    <p>{this.state.psychic_names[index]}</p>
-                                    <p>Stage {this.state.psychics[psychic_id]['stage']}</p>
+                                    <div>{this.state.psychic_names[index]}</div>
+                                    <div className="row" style={{justifyContent:"space-around"}}>
+                                        <IconContext.Provider value={{ size:"1em", color: this.state.psychics[psychic_id].stage==0?"blue":(this.state.psychics[psychic_id].stage>0?"black":"gray"), className: "global-class-name" }}>
+                                            <div>
+                                                <FaUserNinja />
+                                            </div>
+                                        </IconContext.Provider>
+                                        <IconContext.Provider value={{ size:"1em", color: this.state.psychics[psychic_id].stage==1?"blue":(this.state.psychics[psychic_id].stage>1?"black":"gray"), className: "global-class-name" }}>
+                                            <div>
+                                                <FaHome />
+                                            </div>
+                                        </IconContext.Provider>
+                                        <IconContext.Provider value={{ size:"1em", color: this.state.psychics[psychic_id].stage==2?"blue":(this.state.psychics[psychic_id].stage>2?"black":"gray"), className: "global-class-name" }}>
+                                            <div>
+                                                <FaHammer />
+                                            </div>
+                                        </IconContext.Provider>
+                                    </div>
                                 </div>
                             )
                         }
                     })}
                 </div>
+                <div style={{flex:1, textAlign:'right'}}>
+                </div>
+            </div>
         )
     }
 
     ghostallpsychics = () =>{
         return(
-            <div className = "hand" style={{flex:1,  height:'100%', overflow:'scroll', "textAlign":'center'}}>
-                {Object.keys(this.state.psychics).map((psychic_id, index) => {
-                    const border = this.state.selected_psychic === parseInt(psychic_id) ? "dashed" : "solid";
-                    const bgcolor = this.state.psychics[psychic_id].current_guess != null ? "green" : (this.state.ghost['psychics_clued'].includes(parseInt(psychic_id))? "orange" : "transparent")
-                    return(
-                        <div 
-                            key={index} 
-                            className="card"
-                            style = {{backgroundColor:bgcolor, borderStyle:border}}
-                            onClick={()=>{
-                                if(psychic_id != this.state.selected_psychic){
-                                    this.setState({
-                                        selected_stage: this.state.psychics[psychic_id]['stage'],
-                                        selected_card:this.state.stories[psychic_id][this.state.psychics[psychic_id]['stage']],
-                                        selected_psychic:parseInt(psychic_id)
-                                    })
-                                }
-                            }}
-                        >
-                            <p>{this.state.psychic_names[index]}</p>
-                            <p>Stage {this.state.psychics[psychic_id]['stage']}</p>
-                        </div>
-                    )
-                })}
+            <div className = "hand" style={{flex:1,  justifyContent:"space-between", height:'100%', overflow:'scroll', "textAlign":'center'}}>
+                <div style={{flex:1, textAlign:"left"}}>
+                    <h3 style={{margin:"0px"}}>Round</h3>
+                    <h2 style={{margin:"0px"}}>{this.state.current_round}/7</h2>
+                </div>
+                <div className = "hand">
+                    {Object.keys(this.state.psychics).map((psychic_id, index) => {
+                        const border = this.state.selected_psychic === parseInt(psychic_id) ? "dashed" : "solid";
+                        const bgcolor = this.state.psychics[psychic_id].current_guess != null ? "green" : (this.state.ghost['psychics_clued'].includes(parseInt(psychic_id))? "orange" : "transparent")
+                        return(
+                            <div 
+                                key={index} 
+                                className="card"
+                                style = {{backgroundColor:bgcolor, borderStyle:border, display:'flex', flexDirection:"column", alignItems:"stretch", justifyContent:"space-around"}}
+                                onClick={()=>{
+                                    if(psychic_id != this.state.selected_psychic){
+                                        this.setState({
+                                            selected_stage: this.state.psychics[psychic_id]['stage'],
+                                            selected_card:this.state.stories[psychic_id][this.state.psychics[psychic_id]['stage']],
+                                            selected_psychic:parseInt(psychic_id)
+                                        })
+                                    }
+                                }}
+                            >
+                                <div>{this.state.psychic_names[index]}</div>
+                                <div className="row" style={{justifyContent:"space-around"}}>
+                                    <IconContext.Provider value={{ size:"1em", color: this.state.psychics[psychic_id].stage==0?"blue":(this.state.psychics[psychic_id].stage>0?"black":"gray"), className: "global-class-name" }}>
+                                        <div>
+                                            <FaUserNinja />
+                                        </div>
+                                    </IconContext.Provider>
+                                    <IconContext.Provider value={{ size:"1em", color: this.state.psychics[psychic_id].stage==1?"blue":(this.state.psychics[psychic_id].stage>1?"black":"gray"), className: "global-class-name" }}>
+                                        <div>
+                                            <FaHome />
+                                        </div>
+                                    </IconContext.Provider>
+                                    <IconContext.Provider value={{ size:"1em", color: this.state.psychics[psychic_id].stage==2?"blue":(this.state.psychics[psychic_id].stage>2?"black":"gray"), className: "global-class-name" }}>
+                                        <div>
+                                            <FaHammer />
+                                        </div>
+                                    </IconContext.Provider>
+                                </div>
+                            </div>
+                        )
+                    })}
+                </div>
+                <div style={{flex:1, textAlign:'right'}}>
+                </div>
             </div>
         )
     }
@@ -666,7 +847,6 @@ export default class Main extends React.Component {
         }
     }
 
-
 ///////////////////////////////////Selected dream
 
     selecteddream = () =>{
@@ -674,7 +854,7 @@ export default class Main extends React.Component {
     }
 
     ghostselecteddream = () =>{
-        if(this.state.selected_dream){
+        if(this.state.selected_dream!= null){
             return(
                 <img 
                     style={{maxHeight:"100%", maxWidth:"100%", objectFit: "contain"}}
@@ -691,7 +871,7 @@ export default class Main extends React.Component {
     }
 
     psychicselecteddream = () =>{
-        if(this.state.selected_dream){
+        if(this.state.selected_dream!= null){
             return(
                 <img 
                     style={{maxHeight:"100%", maxWidth:"100%", objectFit: "contain"}}
@@ -715,7 +895,7 @@ export default class Main extends React.Component {
 
     ghostselectedcard = () =>{
         const cardtype = this.state.selected_stage==0 ? "suspect" : (this.state.selected_stage==1 ? "place" : "thing")
-        if(this.state.selected_card){
+        if(this.state.selected_card != null){
             return(
                 <img 
                     style={{maxHeight:"100%", maxWidth:"100%", objectFit: "contain"}}
@@ -725,7 +905,7 @@ export default class Main extends React.Component {
         }else{
             return(
                 <div style={{height:"80%", width:"80%", backgroundColor:"#CCC", display:"flex", justifyContent:"center", alignItems:"center"}}> 
-                    <h3 style={{color:"#888"}}>[Select a {cardtype.substring(0, cardtype.length-1)} to display here]</h3>
+                    <h3 style={{color:"#888"}}>[Select a {cardtype} to display here]</h3>
                 </div>   
             )
         }
@@ -735,7 +915,7 @@ export default class Main extends React.Component {
         const disabled= !this.state.ghost['psychics_clued'].includes(this.state.client_id) || this.state.selected_stage != this.state.psychics[this.state.client_id]['stage']
         const color = disabled ? "black" : "blue" ;
         const cardtype = this.state.selected_stage==0 ? "suspects" : (this.state.selected_stage==1 ? "places" : "things")
-        if(this.state.selected_card){
+        if(this.state.selected_card != null){
             return(  
                 <div  style={{height:"100%", width:"100%", display:'flex', flexDirection:'column', justifyContent:'center'}}>
                     <img 
@@ -842,7 +1022,7 @@ export default class Main extends React.Component {
         )
     }
 
-////////////////////////comp helpers
+///////////////////////////////////comp helpers
 
 cardIsGuess = (card) =>{
     return card === this.state.psychics[this.state.selected_psychic]["current_guess"] 
@@ -884,7 +1064,7 @@ cardWaiting = (card) =>{
     }
 }
 
-
+///////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////Main render/////////////////////////
