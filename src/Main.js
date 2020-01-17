@@ -19,6 +19,10 @@ export default class Main extends React.Component {
         super(props);
 
         this.state = {
+            chatlog:[],
+            chatOpen:false,
+            chatMsg:"",
+
             ws: null,
             client_id: null,
             username:"",
@@ -57,8 +61,8 @@ export default class Main extends React.Component {
     timeout = 250; 
 
     connect = () => {
-        var ws = new WebSocket("wss://mysterium-backend.herokuapp.com/game");
-        // var ws = new WebSocket("ws://localhost:8002/game");
+        // var ws = new WebSocket("wss://mysterium-backend.herokuapp.com/game");
+        var ws = new WebSocket("ws://localhost:8002/game");
         let that = this; // cache the this
         var connectInterval;
 
@@ -83,7 +87,15 @@ export default class Main extends React.Component {
                     this.setState({started:false}) 
                 }
             }else if(data['type'] === "join"){
-                 this.setState({joined: true, roomname:message})
+                this.setState(state=>{
+                    var log = state.chatlog
+                    var msg = {"user": "system", 'text': "Joined room "+message, 'type':"system", }
+                    log.unshift(msg)
+                    return({
+                        chatlog:log,
+                        joined: true, roomname:message
+                    })
+                })
             }else if(data['type'] === "client_id"){
                  this.setState({'client_id': message})
                  if(message != "ghost") this.setState({'selected_psychic': parseInt(message)})
@@ -95,6 +107,8 @@ export default class Main extends React.Component {
                  this.updateState(message)
             }else if(data['type'] === "start"){
                  this.startGame(message)
+            }else if(data['type'] === "chat_message"){
+                 this.handleChatMessage(message)
             }else if(data['type'] === "reject"){
                  this.handleRejection(message)
             }else{
@@ -229,11 +243,27 @@ export default class Main extends React.Component {
 
     sendDreams = (psychic) =>{
         const message = {"psychic": psychic, "dreams": this.state.selected}
-        console.log(message)
         this.send('sendDreams', message)
         this.setState({
             selected:[],
             selected_dream:null
+        })
+    }
+
+    sendChatMessage = (message) =>{
+        const chatMessage = {"text":message}
+        this.send('chatMessage', chatMessage)
+        this.setState({chatMsg:""})
+    }
+
+    handleChatMessage = (message) =>{
+        this.setState(state=>{
+            var log = state.chatlog
+            var msg = {"user": message["user"], "text":message["text"], "type":"normal"}
+            log.unshift(msg)
+            return({
+                chatlog:log,
+            })
         })
     }
 
@@ -587,6 +617,84 @@ export default class Main extends React.Component {
         )
     }
 
+///////////////////////////////////Chat
+
+chatbox = () =>{
+    var chatDiv = this.state.chatOpen?this.chatOpen():this.chatClosed()
+    if(this.state.joined){
+        return(
+            <div 
+                style={{position:"absolute", right:0, top:0, zIndex:1}}
+            >
+                {chatDiv}
+            </div>
+        )
+    }
+}
+
+chatOpen = () =>{
+    return(
+        <div 
+            style={{width:"250px", height:"500px", backgroundColor:"white", display:"flex", flexDirection:"column", fontSize:".6em"}}
+        >
+            <div 
+                style={{width:"100%", height:"20px", backgroundColor:"green", cursor:"pointer"}}
+                onClick={()=>{this.setState({chatOpen:false})}}
+
+            >
+            close chat
+            </div>
+            <div style={{flex:'1',  backgroundColor:"white", minHeight: '0px', width:"100%", overflow:"scroll", display:"flex", flexDirection:"column-reverse"}}>
+                {
+                    this.state.chatlog.map((message, index) => {
+                        if(message["type"] == "normal"){
+                            return(
+                                <div>{message["user"]}:{message["text"]}</div>
+                            )
+                        }else{
+                            return(
+                                <div style={{color:"blue"}}>{message["text"]}</div>
+                            )
+                        }
+                    })
+                }
+            </div>
+            <div style={{maxHeight:"50%", width:"100%"}}>
+                <textarea  
+                    autoFocus
+                    style={{height:"100%", width:"100%", boxSizing:"border-box", resize:"none"}}
+                    value={this.state.chatMsg}
+                    onChange={(evt)=> {const val = evt.target.value; this.setState({chatMsg:val})}}
+                    onKeyPress={(evt)=>{
+                        if(evt.key == 'Enter'){
+                            evt.preventDefault();
+                            this.sendChatMessage(this.state.chatMsg);
+                        }
+                    }}
+                />
+            </div>
+            <button 
+                type="button" 
+                onClick={()=>{this.sendChatMessage(this.state.chatMsg)}}
+                disabled={this.state.chatMsg.length==0}
+            >
+                Send {this.state.selected.length} clues to {this.state.psychic_names[this.state.selected_psychic]}
+            </button>
+        </div>
+    )
+}
+
+chatClosed = () =>{
+    return(
+        <div 
+            style={{width:"250px", height:"20px", backgroundColor:"green", cursor:"pointer"}}
+            onClick={()=>{this.setState({chatOpen:true})}}
+        >
+        open chat
+        </div>
+    )
+}
+
 ///////////////////////////////////All psychics
 
     allpsychics = () =>{
@@ -615,7 +723,7 @@ export default class Main extends React.Component {
                         })
                     }}
                     >
-                        <div>{this.state.psychic_names[this.state.client_id]}</div>
+                        <div style={{overflow:"scroll"}}>{this.state.psychic_names[this.state.client_id]}</div>
                         <div className="row" style={{justifyContent:"space-around"}}>
                                 <IconContext.Provider value={{ size:"1em", color: this.state.psychics[this.state.client_id].stage==0?"blue":(this.state.psychics[this.state.client_id].stage>0?"black":"gray"), className: "global-class-name" }}>
                                     <div>
@@ -654,7 +762,7 @@ export default class Main extends React.Component {
                                         }
                                     }}
                                 >
-                                    <div>{this.state.psychic_names[index]}</div>
+                                    <div style={{overflow:"scroll"}}>{this.state.psychic_names[index]}</div>
                                     <div className="row" style={{justifyContent:"space-around"}}>
                                         <IconContext.Provider value={{ size:"1em", color: this.state.psychics[psychic_id].stage==0?"blue":(this.state.psychics[psychic_id].stage>0?"black":"gray"), className: "global-class-name" }}>
                                             <div>
@@ -709,7 +817,7 @@ export default class Main extends React.Component {
                                     }
                                 }}
                             >
-                                <div>{this.state.psychic_names[index]}</div>
+                                <div style={{overflow:"scroll"}}>{this.state.psychic_names[index]}</div>
                                 <div className="row" style={{justifyContent:"space-around"}}>
                                     <IconContext.Provider value={{ size:"1em", color: this.state.psychics[psychic_id].stage==0?"blue":(this.state.psychics[psychic_id].stage>0?"black":"gray"), className: "global-class-name" }}>
                                         <div>
@@ -812,7 +920,7 @@ export default class Main extends React.Component {
                         })}
                     </div>   
                     <div>
-                         <button 
+                        <button 
                             type="button" 
                             onClick={()=>this.sendDreams(this.state.selected_psychic)}
                             disabled={this.state.selected_stage>2 || this.state.ghost['psychics_clued'].includes(parseInt(this.state.selected_psychic))}
@@ -1075,6 +1183,7 @@ cardWaiting = (card) =>{
         var room = this.state.started ? this.gameroom() : this.anteroom();
         return(
             <div className="container">
+                {this.chatbox()}
                 {room}
             </div>
         )
