@@ -560,7 +560,7 @@ export default class Main extends React.Component {
                                 </div>
                             </div>
                         </div>
-                        <div style={{width:"250px", height:'100%', padding:'5px', boxSizing:'border-box',}}>
+                        <div style={{width:"30vh", minWidth:"5vw", height:'100%', padding:'5px', boxSizing:'border-box',}}>
                             <div className="nicebox" style={{width:'100%', overflow:'auto', height:'100%', display:'flex', flexDirection:"column", alignItems:"center"}}>
                                 {this.chatbox()}
                             </div>
@@ -646,7 +646,7 @@ export default class Main extends React.Component {
         return(
             <div className="container">
                 <div className = "row" style={{height:'100%'}}>
-                    <div style={{width:"30vh", height:'100%', padding:'5px', boxSizing:'border-box',}}>
+                    <div style={{width:"30vh", minWidth:"5vw", height:'100%', padding:'5px', boxSizing:'border-box',}}>
                         <div className="nicebox" style={{width:'100%', overflow:'auto', height:'100%', display:'flex', flexDirection:"column", alignItems:"center"}}>
                             {this.mainhand()}
                         </div>
@@ -658,7 +658,7 @@ export default class Main extends React.Component {
                         {mainDisplay}
                         {visibleCards}
                     </div>
-                    <div style={{width:"30vh", height:'100%', padding:'5px', boxSizing:'border-box',}}>
+                    <div style={{width:"30vh", minWidth:"5vw", height:'100%', padding:'5px', boxSizing:'border-box',}}>
                         <div className="nicebox" style={{width:'100%', overflow:'auto', height:'100%', display:'flex', flexDirection:"column", alignItems:"center"}}>
                             {this.chatbox()}
                         </div>
