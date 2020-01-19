@@ -392,7 +392,7 @@ export default class Main extends React.Component {
             return(
                 <div className="container" style={{justifyContent:"center",alignItems:"center"}}>
                     <h2>Room: {this.state.roomname}</h2>
-                        <div className = "nicebox" style={{padding:'0px', display:'flex', width:"50%", minWidth:"300px", overflow: 'scroll', flex:1}}>
+                        <div className = "nicebox" style={{padding:'0px', display:'flex', width:"50%", minWidth:"300px", overflow: 'auto', flex:1}}>
                             {users}
                         </div>
                         <br/>
@@ -532,16 +532,16 @@ export default class Main extends React.Component {
         const cardtype = this.state.selected_stage==0 ? "suspects" : (this.state.selected_stage==1 ? "places" : "things")
         const mainDisplay = this.state.selected_stage < 3 ? (
             <div className = "row" style={{overflow:'visible', minHeight: 0, flex:1}}>
-                <div className="nicebox" style={{minHeight: 0, flex:2, overflow:'scroll', margin:'3px', padding:'3px', display:'flex', alignItems:'center', justifyContent:"center"}}>
+                <div className="nicebox" style={{minHeight: 0, flex:2, overflow:'auto', margin:'3px', padding:'3px', display:'flex', alignItems:'center', justifyContent:"center"}}>
                     {this.selecteddream()}
                 </div>
-                <div className="nicebox" style={{minHeight: 0, flex:2, overflow:'scroll', margin:'3px', padding:'3px', display:'flex', alignItems:'center', justifyContent:"center"}}>
+                <div className="nicebox" style={{minHeight: 0, flex:2, overflow:'auto', margin:'3px', padding:'3px', display:'flex', alignItems:'center', justifyContent:"center"}}>
                     {this.selectedcard()}
                 </div>
             </div>
         ):(
             <div className = "row" style={{overflow:'visible', minHeight: 0, flex:1}}>
-                <div className="nicebox" style={{minHeight: 0, flex:2, overflow:'scroll', margin:'3px', padding:'3px', display:'flex', alignItems:'center', justifyContent:"center"}}>
+                <div className="nicebox" style={{minHeight: 0, flex:2, overflow:'auto', margin:'3px', padding:'3px', display:'flex', alignItems:'center', justifyContent:"center"}}>
                     <div className="row">
                         <div style={{width:"33%", padding:"3px", boxSizing:"border-box", textAlign:"center"}}>
                             <IconContext.Provider value={{ size:"3em", color:"black", className: "global-class-name" }}>
@@ -601,12 +601,12 @@ export default class Main extends React.Component {
             <div className="container">
                 <div className = "row" style={{height:'100%'}}>
                     <div style={{flex:1, height:'100%', padding:'5px', boxSizing:'border-box',}}>
-                        <div className="nicebox" style={{width:'100%', overflow:'scroll', height:'100%', display:'flex', flexDirection:"column", alignItems:"center"}}>
+                        <div className="nicebox" style={{width:'100%', overflow:'auto', height:'100%', display:'flex', flexDirection:"column", alignItems:"center"}}>
                             {this.mainhand()}
                         </div>
                     </div>
                     <div style={{flex:4, height:'100%', display:'flex', flexDirection:"column", padding:'5px',  boxSizing:'border-box'}}>
-                        <div className = "row" style={{overflow:'scroll', flex:'0 1 auto'}}>
+                        <div className = "row" style={{overflow:'auto', flex:'0 1 auto'}}>
                             {this.allpsychics()}
                         </div>
                         {mainDisplay}
@@ -644,7 +644,7 @@ chatOpen = () =>{
             >
             close chat
             </div>
-            <div style={{flex:'1',  backgroundColor:"white", minHeight: '0px', width:"100%", overflow:"scroll", display:"flex", flexDirection:"column-reverse"}}>
+            <div style={{flex:'1',  backgroundColor:"white", minHeight: '0px', width:"100%", overflow:"auto", display:"flex", flexDirection:"column-reverse"}}>
                 {
                     this.state.chatlog.map((message, index) => {
                         if(message["type"] == "normal"){
@@ -705,7 +705,7 @@ chatClosed = () =>{
         const border = this.state.selected_psychic === this.state.client_id ? "dashed" : "solid"
         const bgcolor = this.state.psychics[this.state.client_id].current_guess != null ? "green" : (this.state.ghost['psychics_clued'].includes(parseInt(this.state.client_id))? "orange" : "transparent")         
         return(
-            <div className = "hand" style={{flex:1,  justifyContent:"space-between", height:'100%', overflow:'scroll', "textAlign":'center'}}>
+            <div className = "hand" style={{flex:1,  justifyContent:"space-between", height:'100%', overflow:'auto', "textAlign":'center'}}>
                 <div style={{flex:1, textAlign:"left"}}>
                     <h3 style={{margin:"0px"}}>Round</h3>
                     <h2 style={{margin:"0px"}}>{this.state.current_round}/7</h2>
@@ -723,7 +723,7 @@ chatClosed = () =>{
                         })
                     }}
                     >
-                        <div style={{overflow:"scroll"}}>{this.state.psychic_names[this.state.client_id]}</div>
+                        <div style={{overflow:"auto"}}>{this.state.psychic_names[this.state.client_id]}</div>
                         <div className="row" style={{justifyContent:"space-around"}}>
                                 <IconContext.Provider value={{ size:"1em", color: this.state.psychics[this.state.client_id].stage==0?"blue":(this.state.psychics[this.state.client_id].stage>0?"black":"gray"), className: "global-class-name" }}>
                                     <div>
@@ -762,7 +762,7 @@ chatClosed = () =>{
                                         }
                                     }}
                                 >
-                                    <div style={{overflow:"scroll"}}>{this.state.psychic_names[index]}</div>
+                                    <div style={{overflow:"auto"}}>{this.state.psychic_names[index]}</div>
                                     <div className="row" style={{justifyContent:"space-around"}}>
                                         <IconContext.Provider value={{ size:"1em", color: this.state.psychics[psychic_id].stage==0?"blue":(this.state.psychics[psychic_id].stage>0?"black":"gray"), className: "global-class-name" }}>
                                             <div>
@@ -793,7 +793,7 @@ chatClosed = () =>{
 
     ghostallpsychics = () =>{
         return(
-            <div className = "hand" style={{flex:1,  justifyContent:"space-between", height:'100%', overflow:'scroll', "textAlign":'center'}}>
+            <div className = "hand" style={{flex:1,  justifyContent:"space-between", height:'100%', overflow:'auto', "textAlign":'center'}}>
                 <div style={{flex:1, textAlign:"left"}}>
                     <h3 style={{margin:"0px"}}>Round</h3>
                     <h2 style={{margin:"0px"}}>{this.state.current_round}/7</h2>
@@ -817,7 +817,7 @@ chatClosed = () =>{
                                     }
                                 }}
                             >
-                                <div style={{overflow:"scroll"}}>{this.state.psychic_names[index]}</div>
+                                <div style={{overflow:"auto"}}>{this.state.psychic_names[index]}</div>
                                 <div className="row" style={{justifyContent:"space-around"}}>
                                     <IconContext.Provider value={{ size:"1em", color: this.state.psychics[psychic_id].stage==0?"blue":(this.state.psychics[psychic_id].stage>0?"black":"gray"), className: "global-class-name" }}>
                                         <div>
