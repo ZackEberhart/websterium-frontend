@@ -30,6 +30,7 @@ export default class Main extends React.Component {
             users:{},
             joined:false,
             started:false,
+            loading:false,
 
             image_sources:["yGUC9", "NUIuAHY", "VoCv2", "mtzum"],
             image_links:{},
@@ -164,6 +165,11 @@ export default class Main extends React.Component {
         this.setState({users: message, psychic_names:psychic_names})
     }
 
+    sendStart = () =>{
+        this.send('startGame', this.state.image_sources);
+        this.setState({loading:true})
+    }
+
     startGame = (message) =>{
         this.setState({
             started: true,
@@ -172,6 +178,7 @@ export default class Main extends React.Component {
             selected_dream:null,
             selected_stage:0,
             cards: message,
+            loading:false
         })
         if(this.state.client_id === "ghost"){
             this.setState({
@@ -182,7 +189,6 @@ export default class Main extends React.Component {
             this.setState({
                 selected_card: this.state.cards["suspects"][0],
                 selected_psychic:this.state.client_id,
-
             })
         }
     }
@@ -242,6 +248,7 @@ export default class Main extends React.Component {
 
     handleRejection = (message) =>{
         alert(message)
+        this.setState({loading:false})
     }
 
     sendDreams = (psychic) =>{
@@ -287,7 +294,6 @@ export default class Main extends React.Component {
 
     makeGuess = (card) =>{
         const message = {"psychic": this.state.client_id, "guess": card}
-        console.log(message)
         this.send('makeGuess', message)
         guess.play(1.0)
     }
@@ -301,7 +307,6 @@ export default class Main extends React.Component {
     }
 
     wasCorrect = (newState, psychic) =>{
-        console.log(newState)
         if(psychic === "ghost" || newState['current_round'] === 1){
             return false;
         }else{
@@ -346,7 +351,7 @@ export default class Main extends React.Component {
                                 onChange={(evt)=> {const val = evt.target.value; this.setState({roomname:val})}}
                                 onKeyPress={(evt)=>{
                                     if(evt.key === 'Enter'){
-                                        this.sendChatMessage(this.state.chatMsg);
+                                        this.send('join', {"roomname": this.state.roomname, "username":this.state.username})
                                     }
                                 }}
                             />
@@ -359,7 +364,7 @@ export default class Main extends React.Component {
                                 onChange={(evt)=> {const val = evt.target.value; this.setState({username:val})}}
                                 onKeyPress={(evt)=>{
                                     if(evt.key === 'Enter'){
-                                        this.sendChatMessage(this.state.chatMsg);
+                                        this.send('join', {"roomname": this.state.roomname, "username":this.state.username})
                                     }
                                 }}
                             />
@@ -445,7 +450,7 @@ export default class Main extends React.Component {
                                 </button>
                             </div>
                             <div className = "row">
-                                <button type="button" onClick={() => this.send('startGame', this.state.image_sources)}>Start game</button>
+                                <button type="button" onClick={this.sendStart }>Start game</button>
                                 <button type="button" onClick={this.leaveRoom}>Leave room</button>
                             </div>
                             <br/>
@@ -641,7 +646,7 @@ export default class Main extends React.Component {
         return(
             <div className="container">
                 <div className = "row" style={{height:'100%'}}>
-                    <div style={{width:"250px", height:'100%', padding:'5px', boxSizing:'border-box',}}>
+                    <div style={{width:"30vh", height:'100%', padding:'5px', boxSizing:'border-box',}}>
                         <div className="nicebox" style={{width:'100%', overflow:'auto', height:'100%', display:'flex', flexDirection:"column", alignItems:"center"}}>
                             {this.mainhand()}
                         </div>
@@ -653,7 +658,7 @@ export default class Main extends React.Component {
                         {mainDisplay}
                         {visibleCards}
                     </div>
-                    <div style={{width:"250px", height:'100%', padding:'5px', boxSizing:'border-box',}}>
+                    <div style={{width:"30vh", height:'100%', padding:'5px', boxSizing:'border-box',}}>
                         <div className="nicebox" style={{width:'100%', overflow:'auto', height:'100%', display:'flex', flexDirection:"column", alignItems:"center"}}>
                             {this.chatbox()}
                         </div>
@@ -769,7 +774,7 @@ chatbox = () =>{
         const border = this.state.selected_psychic === this.state.client_id ? "dashed" : "solid"
         const bgcolor = this.state.psychics[this.state.client_id].current_guess !== null ? "green" : (this.state.ghost['psychics_clued'].includes(parseInt(this.state.client_id))? "orange" : "transparent")         
         return(
-            <div className = "hand" style={{flex:1,  justifyContent:"space-between", height:'100%', overflow:'auto', "textAlign":'center'}}>
+            <div className = "hand" style={{flex:1,  justifyContent:"space-between", height:'100%', overflowX:'auto', "textAlign":'center'}}>
                 <div style={{flex:1, textAlign:"left"}}>
                     <h3 style={{margin:"0px"}}>Round</h3>
                     <h2 style={{margin:"0px"}}>{this.state.current_round}/7</h2>
@@ -787,7 +792,7 @@ chatbox = () =>{
                         })
                     }}
                     >
-                        <div style={{overflow:"auto"}}>{this.state.psychic_names[this.state.client_id]}</div>
+                        <div style={{overflow:"hidden"}}>{this.state.psychic_names[this.state.client_id]}</div>
                         <div className="row" style={{justifyContent:"space-around"}}>
                                 <IconContext.Provider value={{ size:"1em", color: this.state.psychics[this.state.client_id].stage===0?"blue":(this.state.psychics[this.state.client_id].stage>0?"black":"gray"), className: "global-class-name" }}>
                                     <div>
@@ -1040,7 +1045,7 @@ chatbox = () =>{
             return(
                 <img 
                     alt="Selected Dream"
-                    style={{maxHeight:"100%", maxWidth:"100%", objectFit: "contain"}}
+                    style={{maxHeight:"100%", maxWidth:"100%", minHeight:"100%", minWidth:"100", objectFit: "contain"}}
                     src={this.state.image_links['dreams'][this.state.selected_dream]}
                 />
             )
@@ -1252,6 +1257,14 @@ cardWaiting = (card) =>{
 
 ///////////////////////////////////
 
+loading = () =>{
+    return(
+        <div style={{borderRadius: 5, boxShadow:"0 4px 8px 0 rgba(0, 0, 0, 0.15), 0 6px 20px 0 rgba(0, 0, 0, 0.19)", display:"flex", alignItems:"center", justifyContent:"center", position:"absolute", width:"50%", height:"50%", top:"25%", left:"25%", backgroundColor:"#EEE", opacity:".8"}}>
+            <h2>Loading</h2>
+        </div>
+    )
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////Main render/////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -1259,9 +1272,11 @@ cardWaiting = (card) =>{
 
     render(){
         var room = this.state.started ? this.gameroom() : this.anteroom();
+        var loading = this.state.loading ? this.loading() :null
         return(
             <div className="container">
                 {room}
+                {loading}
             </div>
         )
     }
