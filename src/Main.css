@@ -40,3 +40,18 @@
   background-color: #e4e4ef;
   cursor: pointer;
 }
+
+.magnifier{
+  display:flex;
+  align-items: center;
+  justify-content: center;
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.magnifier-image{
+  object-fit:contain;
+  width:auto;
+  height:100vh;
+}

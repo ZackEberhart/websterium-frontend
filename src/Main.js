@@ -1,10 +1,12 @@
 import React from 'react';
-import './Main.css';
+import Magnifier from "react-magnifier";
 import UIfx from 'uifx'; 
+import './Main.css';
 import correctSound from './assets/correct.wav';
 import guessSound from './assets/guess.wav';
 import upnextSound from './assets/upnext.wav';
 import wrongSound from './assets/wrong.wav';
+import { config } from './Config.js'
 import { IconContext } from "react-icons";
 import { FaGhost, FaHome, FaEye, FaHammer, FaUserNinja} from "react-icons/fa";
 
@@ -63,8 +65,7 @@ export default class Main extends React.Component {
     timeout = 250; 
 
     connect = () => {
-        var ws = new WebSocket("wss://mysterium-backend.herokuapp.com/game");
-        // var ws = new WebSocket("ws://localhost:8002/game");
+        var ws = new WebSocket(config.url.API_URL);
         let that = this; // cache the this
         var connectInterval;
 
@@ -99,7 +100,7 @@ export default class Main extends React.Component {
                     })
                 })
             }else if(data['type'] === "client_id"){
-                 this.setState({'client_id': message})
+                 this.setState({'client_id': message, loading:true})
                  if(message !== "ghost") this.setState({'selected_psychic': parseInt(message)})
             }else if(data['type'] === "image_links"){
                  this.setState({'image_links': message})
@@ -167,10 +168,20 @@ export default class Main extends React.Component {
 
     sendStart = () =>{
         this.send('startGame', this.state.image_sources);
-        this.setState({loading:true})
     }
 
     startGame = (message) =>{
+        for(let key in this.state.image_links['dreams']){
+            var img=new Image();
+            img.src=this.state.image_links['dreams'][key];
+        }
+        for(let card_links of this.state.image_links['cards']){
+            for(let key in card_links){
+                var img=new Image();
+                img.src=card_links[key];
+            }                
+        }
+        console.log("HMMMmmmm")
         this.setState({
             started: true,
             selected:[],
@@ -575,10 +586,10 @@ export default class Main extends React.Component {
         const cardtype = this.state.selected_stage === 0 ? "suspects" : (this.state.selected_stage === 1 ? "places" : "things")
         const mainDisplay = this.state.selected_stage < 3 ? (
             <div className = "row" style={{overflow:'visible', minHeight: 0, flex:1}}>
-                <div className="nicebox" style={{minHeight: 0, flex:2, overflow:'auto', margin:'3px', padding:'3px', display:'flex', alignItems:'center', justifyContent:"center"}}>
+                <div className="nicebox" style={{minHeight: 0, flex:2, overflow:'auto', boxSizing:"border-box",margin:'3px', padding:'3px', display:'flex', alignItems:'center', justifyContent:"center"}}>
                     {this.selecteddream()}
                 </div>
-                <div className="nicebox" style={{minHeight: 0, flex:2, overflow:'auto', margin:'3px', padding:'3px', display:'flex', alignItems:'center', justifyContent:"center"}}>
+                <div className="nicebox" style={{minHeight: 0, flex:2, overflow:'auto', boxSizing:"border-box",margin:'3px', padding:'3px', display:'flex', alignItems:'center', justifyContent:"center"}}>
                     {this.selectedcard()}
                 </div>
             </div>
@@ -1044,9 +1055,8 @@ chatbox = () =>{
         if(this.state.selected_dream!== null){
             return(
                 <img 
-                    alt="Selected Dream"
-                    style={{maxHeight:"100%", maxWidth:"100%", minHeight:"100%", minWidth:"100", objectFit: "contain"}}
-                    src={this.state.image_links['dreams'][this.state.selected_dream]}
+                    src={this.state.image_links['dreams'][this.state.selected_dream]} 
+                    style={{maxHeight:"100%", maxWidth:"100%",  objectFit: "contain"}} 
                 />
             )
         }else{
@@ -1062,8 +1072,7 @@ chatbox = () =>{
         if(this.state.selected_dream!== null){
             return(
                 <img 
-                    alt="Selected Dream"
-                    style={{maxHeight:"100%", maxWidth:"100%", objectFit: "contain"}}
+                    style={{maxHeight:"100%", maxWidth:"100%",  objectFit: "contain"}} 
                     src={this.state.image_links['dreams'][this.state.selected_dream]}
                 />
             )
@@ -1087,8 +1096,7 @@ chatbox = () =>{
         if(this.state.selected_card !== null){
             return(
                 <img 
-                    alt={"Selected "+cardtype}
-                    style={{maxHeight:"100%", maxWidth:"100%", objectFit: "contain"}}
+                    style={{maxHeight:"100%", maxWidth:"100%",  objectFit: "contain"}} 
                     src={this.state.image_links['cards'][this.state.selected_stage][this.state.selected_card]}
                 />
             )
@@ -1109,8 +1117,7 @@ chatbox = () =>{
             return(  
                 <div  style={{height:"100%", width:"100%", display:'flex', flexDirection:'column', justifyContent:'center'}}>
                     <img 
-                        alt={"Selected "+cardtype}
-                        style={{maxHeight:"95%", maxWidth:"100%", objectFit: "contain", borderColor:color}}
+                        style={{maxHeight:"100%", maxWidth:"100%",  objectFit: "contain"}} 
                         src={this.state.image_links['cards'][this.state.selected_stage][this.state.selected_card]}
                     />
                     <div style={{textAlign:'center'}} >

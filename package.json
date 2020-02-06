@@ -1,5 +1,5 @@
 {
-  "name": "mystereum",
+  "name": "webtereum",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -8,12 +8,17 @@
     "path": "^0.12.7",
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
-    "react-icons": "^3.8.0",
-    "react-scripts": "3.2.0",
+    "react-icons": "^3.9.0",
+    "react-image-magnifiers": "^1.2.2",
+    "react-image-magnify": "^2.7.4",
+    "react-magnifier": "^3.0.4",
+    "react-scripts": "^3.3.1",
+    "serialize-javascript": "^2.1.1",
     "uifx": "^2.0.7"
   },
   "scripts": {
-    "start": "node server.js",
+    "dev": "NODE_ENV=development react-scripts start",
+    "start": "NODE_ENV=production node public/server.js",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
