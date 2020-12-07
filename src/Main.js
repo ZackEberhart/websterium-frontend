@@ -83,22 +83,9 @@ export default class Main extends React.Component {
             var data = JSON.parse(evt.data)
             const message = data["message"]
             if(data["type"] === "user_list"){
-                this.setUserList(message)
-                if(this.state.started){
-                    wrong.play(1.0)
-                    alert("One of the players left the room, so you all lose.")
-                    this.setState({started:false}) 
-                }
+                this.updateUsers(message)
             }else if(data['type'] === "join"){
-                this.setState(state=>{
-                    var log = state.chatlog
-                    var msg = {"user": "system", 'text': "Joined room "+message, 'type':"system", }
-                    log.unshift(msg)
-                    return({
-                        chatlog:log,
-                        joined: true, roomname:message
-                    })
-                })
+                this.join(message)
             }else if(data['type'] === "client_id"){
                  this.setState({'client_id': message, loading:true})
                  if(message !== "ghost") this.setState({'selected_psychic': parseInt(message)})
@@ -148,14 +135,27 @@ export default class Main extends React.Component {
     }
 
     send = (mtype, data) => {
-        var message = JSON.stringify({"type": mtype, "message": data});
-        this.state.ws.send(message);
+        if(this.state.ws){
+            var message = JSON.stringify({"type": mtype, "message": data});
+            this.state.ws.send(message);
+        }else{
+            console.log("Websocket not connected.")
+        }
     }
 
 //////////////////////////////////////////////////////////////////////////////////////////
     ///////////////////////////////Funcs/////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////
 
+    updateUsers = (message) =>{
+        this.setUserList(message)
+        // if(this.state.started){
+        //     wrong.play(1.0)
+        //     alert("One of the players left the room, so you all lose.")
+        //     this.setState({started:false}) 
+        // }
+    }
+    
     setUserList = (message) =>{
         var psychic_names = {}
         for(var user_id in message){
@@ -166,11 +166,27 @@ export default class Main extends React.Component {
         this.setState({users: message, psychic_names:psychic_names})
     }
 
+    join = (message) =>{
+        this.setState(state=>{
+            var log = state.chatlog
+            var msg = {"user": "system", 'text': "Joined room "+message, 'type':"system", }
+            log.unshift(msg)
+            return({
+                chatlog:log,
+                joined: true, roomname:message
+            })
+        })
+    }
+
     sendStart = () =>{
         this.send('startGame', this.state.image_sources);
     }
 
     startGame = (message) =>{
+        /* Attempting to preload images, not working properly
+        * Probably because images are too large, literally can't preload em all.
+        * Though I wonder if we could add something here to force it to wait for them to successfully load...
+        */
         for(let key in this.state.image_links['dreams']){
             var img=new Image();
             img.src=this.state.image_links['dreams'][key];
@@ -481,11 +497,6 @@ export default class Main extends React.Component {
                                         Weird gifs 1
                                     </button>
                                     <button type="button"
-                                        onClick={(evt)=> {this.setState((state)=>{state.image_sources[0] = "RfnLT"; return(state)})}}
-                                    >
-                                        Weird gifs 2
-                                    </button>
-                                    <button type="button"
                                         onClick={(evt)=> {this.setState((state)=>{state.image_sources[0] = "Tf4Nc"; return(state)})}}
                                     >
                                         Simpsons
@@ -494,6 +505,11 @@ export default class Main extends React.Component {
                                         onClick={(evt)=> {this.setState((state)=>{state.image_sources[0] = "vdLZg"; return(state)})}}
                                     >
                                         Zdzisław Beksiński
+                                    </button>
+                                    <button type="button"
+                                        onClick={(evt)=> {this.setState((state)=>{state.image_sources[0] = "oGo8Vup"; return(state)})}}
+                                    >
+                                        Cursed Images
                                     </button>
                                 </div>
                                 <div>
@@ -515,6 +531,11 @@ export default class Main extends React.Component {
                                         onClick={(evt)=> {this.setState((state)=>{state.image_sources[1] = "ageiv"; return(state)})}}
                                     >
                                         Misc. Characters
+                                    </button>
+                                    <button type="button"
+                                        onClick={(evt)=> {this.setState((state)=>{state.image_sources[1] = "NEoYMSr"; return(state)})}}
+                                    >
+                                        Cursed Toys
                                     </button>
                                 </div>
                                 <div>
@@ -541,6 +562,11 @@ export default class Main extends React.Component {
                                         onClick={(evt)=> {this.setState((state)=>{state.image_sources[2] = "jhxPqxh"; return(state)})}}
                                     >
                                         Smash stages
+                                    </button>
+                                    <button type="button"
+                                        onClick={(evt)=> {this.setState((state)=>{state.image_sources[2] = "RqkUd8g"; return(state)})}}
+                                    >
+                                        Cursed Toilets
                                     </button>
                                 </div>
                                 <div>
@@ -681,99 +707,99 @@ export default class Main extends React.Component {
 
 ///////////////////////////////////Chat
 
-chatbox = () =>{
-    var chatBox = (this.state.started && this.state.client_id==="ghost")?
-        <div>
-            <div style={{fontSize:"2em", width:"100%", display:"flex", padding:"20px 0px", justifyContent:"space-around", flexDirection:"row"}}>
+    chatbox = () =>{
+        var chatBox = (this.state.started && this.state.client_id==="ghost")?
+            <div>
+                <div style={{fontSize:"2em", width:"100%", display:"flex", padding:"20px 0px", justifyContent:"space-around", flexDirection:"row"}}>
+                    <button 
+                        type="button" 
+                        onClick={()=>{this.sendChatMessage("👅")}}
+                    >
+                        👅
+                    </button>
+                    <button 
+                        type="button" 
+                        onClick={()=>{this.sendChatMessage("🧠")}}
+                    >
+                        🧠
+                    </button>
+                    <button 
+                        type="button" 
+                        onClick={()=>{this.sendChatMessage("👂")}}
+                    >
+                        👂
+                    </button>
+                    <button 
+                        type="button" 
+                        onClick={()=>{this.sendChatMessage("👀")}}
+                    >
+                        👀 
+                    </button>
+                    <button 
+                        type="button" 
+                        onClick={()=>{this.sendChatMessage("👃")}}
+                    >
+                        👃
+                    </button>
+                </div>
+            </div>
+        :   
+            <div style={{maxHeight:"50%", width:"100%"}}>
+                <div style={{height:"80px", width:"100%"}}>
+                    <textarea  
+                        autoFocus
+                        style={{height:"100%", width:"100%", boxSizing:"border-box", resize:"none"}}
+                        value={this.state.chatMsg}
+                        onChange={(evt)=> {const val = evt.target.value; this.setState({chatMsg:val})}}
+                        onKeyPress={(evt)=>{
+                            if(evt.key === 'Enter'){
+                                evt.preventDefault();
+                                this.sendChatMessage(this.state.chatMsg);
+                            }
+                        }}
+                    />
+                </div>
                 <button 
                     type="button" 
-                    onClick={()=>{this.sendChatMessage("👅")}}
+                    style={{width:"100%"}}
+                    onClick={()=>{this.sendChatMessage(this.state.chatMsg)}}
+                    disabled={this.state.chatMsg.length===0}
                 >
-                    👅
-                </button>
-                <button 
-                    type="button" 
-                    onClick={()=>{this.sendChatMessage("🧠")}}
-                >
-                    🧠
-                </button>
-                <button 
-                    type="button" 
-                    onClick={()=>{this.sendChatMessage("👂")}}
-                >
-                    👂
-                </button>
-                <button 
-                    type="button" 
-                    onClick={()=>{this.sendChatMessage("👀")}}
-                >
-                    👀 
-                </button>
-                <button 
-                    type="button" 
-                    onClick={()=>{this.sendChatMessage("👃")}}
-                >
-                    👃
+                    Send
                 </button>
             </div>
-        </div>
-    :   
-        <div style={{maxHeight:"50%", width:"100%"}}>
-            <div style={{height:"80px", width:"100%"}}>
-                <textarea  
-                    autoFocus
-                    style={{height:"100%", width:"100%", boxSizing:"border-box", resize:"none"}}
-                    value={this.state.chatMsg}
-                    onChange={(evt)=> {const val = evt.target.value; this.setState({chatMsg:val})}}
-                    onKeyPress={(evt)=>{
-                        if(evt.key === 'Enter'){
-                            evt.preventDefault();
-                            this.sendChatMessage(this.state.chatMsg);
-                        }
-                    }}
-                />
-            </div>
-            <button 
-                type="button" 
-                style={{width:"100%"}}
-                onClick={()=>{this.sendChatMessage(this.state.chatMsg)}}
-                disabled={this.state.chatMsg.length===0}
-            >
-                Send
-            </button>
-        </div>
 
-    return(
-        <div 
-            style={{width:"100%", height:"100%", backgroundColor:"white", display:"flex", flexDirection:"column"}}
-        >
-            <h3 style={{textAlign:"center"}}> Chat </h3>
-            <div style={{padding:"2px", flex:'1',  boxSizing:"border-box", backgroundColor:"white", minHeight: '0px', width:"100%", overflow:"auto", display:"flex", flexDirection:"column-reverse"}}>
-                {
-                    this.state.chatlog.map((message, index) => {
-                        var size = message["ghost"]? "2em" : ".8em"
-                        if(message["type"] === "normal"){
-                            var color = (message["user"] === this.state.username) ? "green" : "black"
-                            return(
-                                <div key={index} style={{padding:"3px 0px"}}>
-                                    <div style = {{fontSize:".6em", opacity:".5", color:color}}>{message["ghost"]?message["user"]+"(GHOST)":message["user"]}</div>
-                                    <div style = {{fontSize:size, color:color}}>{message["text"]}</div>
-                                </div>
-                            )
-                        }else{
-                            return(
-                                <div key={index} style={{color:"blue", padding:"5px 0px"}}>
-                                    {message["text"]}
-                                </div>
-                            )
-                        }
-                    })
-                }
+        return(
+            <div 
+                style={{width:"100%", height:"100%", backgroundColor:"white", display:"flex", flexDirection:"column"}}
+            >
+                <h3 style={{textAlign:"center"}}> Chat </h3>
+                <div style={{padding:"2px", flex:'1',  boxSizing:"border-box", backgroundColor:"white", minHeight: '0px', width:"100%", overflow:"auto", display:"flex", flexDirection:"column-reverse"}}>
+                    {
+                        this.state.chatlog.map((message, index) => {
+                            var size = message["ghost"]? "2em" : ".8em"
+                            if(message["type"] === "normal"){
+                                var color = (message["user"] === this.state.username) ? "green" : "black"
+                                return(
+                                    <div key={index} style={{padding:"3px 0px"}}>
+                                        <div style = {{fontSize:".6em", opacity:".5", color:color}}>{message["ghost"]?message["user"]+"(GHOST)":message["user"]}</div>
+                                        <div style = {{fontSize:size, color:color}}>{message["text"]}</div>
+                                    </div>
+                                )
+                            }else{
+                                return(
+                                    <div key={index} style={{color:"blue", padding:"5px 0px"}}>
+                                        {message["text"]}
+                                    </div>
+                                )
+                            }
+                        })
+                    }
+                </div>
+                {chatBox}
             </div>
-            {chatBox}
-        </div>
-    )
-}
+        )
+    }
 
 ///////////////////////////////////All psychics
 
@@ -1222,55 +1248,55 @@ chatbox = () =>{
 
 ///////////////////////////////////comp helpers
 
-cardIsGuess = (card) =>{
-    return card === this.state.psychics[this.state.selected_psychic]["current_guess"] 
-}
-
-cardSelected = (card) =>{
-    return card === this.state.selected_card 
-}
-
-cardGuessable = (card) =>{
-    if(this.state.selected_psychic !== this.state.client_id || this.cardTaken(card)){
-        return false
-    }else{
-        return true
+    cardIsGuess = (card) =>{
+        return card === this.state.psychics[this.state.selected_psychic]["current_guess"] 
     }
-}
 
-cardTaken = (card) => {
-    var card_taken = false
-    for(const psychic_id in this.state.psychics){
-        if(this.state.psychics[psychic_id]['story'].length>this.state.selected_stage){
-            if(this.state.psychics[psychic_id]['story'][this.state.selected_stage] === card){
-                card_taken = true
-            }
+    cardSelected = (card) =>{
+        return card === this.state.selected_card 
+    }
+
+    cardGuessable = (card) =>{
+        if(this.state.selected_psychic !== this.state.client_id || this.cardTaken(card)){
+            return false
+        }else{
+            return true
         }
     }
-    if(this.state.psychics[this.state.selected_psychic]['guesses'].includes(card) || card_taken){
-        return true
-    }else{
-        return false
+
+    cardTaken = (card) => {
+        var card_taken = false
+        for(const psychic_id in this.state.psychics){
+            if(this.state.psychics[psychic_id]['story'].length>this.state.selected_stage){
+                if(this.state.psychics[psychic_id]['story'][this.state.selected_stage] === card){
+                    card_taken = true
+                }
+            }
+        }
+        if(this.state.psychics[this.state.selected_psychic]['guesses'].includes(card) || card_taken){
+            return true
+        }else{
+            return false
+        }
     }
-}
 
-cardWaiting = (card) =>{
-    if(this.state.client_id !== "ghost" && !this.state.ghost['psychics_clued'].includes(this.state.selected_psychic)){
-        return true
-    }else{
-        return false
+    cardWaiting = (card) =>{
+        if(this.state.client_id !== "ghost" && !this.state.ghost['psychics_clued'].includes(this.state.selected_psychic)){
+            return true
+        }else{
+            return false
+        }
     }
-}
 
-///////////////////////////////////
+///////////////////////////////////Loading
 
-loading = () =>{
-    return(
-        <div style={{borderRadius: 5, boxShadow:"0 4px 8px 0 rgba(0, 0, 0, 0.15), 0 6px 20px 0 rgba(0, 0, 0, 0.19)", display:"flex", alignItems:"center", justifyContent:"center", position:"absolute", width:"50%", height:"50%", top:"25%", left:"25%", backgroundColor:"#EEE", opacity:".8"}}>
-            <h2>Loading</h2>
-        </div>
-    )
-}
+    loading = () =>{
+        return(
+            <div style={{borderRadius: 5, boxShadow:"0 4px 8px 0 rgba(0, 0, 0, 0.15), 0 6px 20px 0 rgba(0, 0, 0, 0.19)", display:"flex", alignItems:"center", justifyContent:"center", position:"absolute", width:"50%", height:"50%", top:"25%", left:"25%", backgroundColor:"#EEE", opacity:".8"}}>
+                <h2>Loading</h2>
+            </div>
+        )
+    }
 
 //////////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////Main render/////////////////////////
