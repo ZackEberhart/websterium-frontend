@@ -6,6 +6,16 @@ import correctSound from './assets/correct.wav';
 import guessSound from './assets/guess.wav';
 import upnextSound from './assets/upnext.wav';
 import wrongSound from './assets/wrong.wav';
+import cawSound from './assets/crow.mp3';
+import victory1Sound from './assets/victory1.mp3';
+import victory2Sound from './assets/victory2.mp3';
+import victory3Sound from './assets/victory3.mp3';
+import victory4Sound from './assets/victory4.mp3';
+import victory5Sound from './assets/victory5.mp3';
+import defeat1Sound from './assets/defeat1.mp3';
+import defeat2Sound from './assets/defeat2.mp3';
+import defeat3Sound from './assets/defeat3.mp3';
+import defeat4Sound from './assets/defeat4.mp3';
 import { config } from './Config.js'
 import { IconContext } from "react-icons";
 import { FaGhost, FaHome, FaEye, FaHammer, FaUserNinja} from "react-icons/fa";
@@ -14,6 +24,16 @@ const correct = new UIfx(correctSound, {volume: 1.0});
 const guess = new UIfx(guessSound, {volume: 1.0});
 const upnext = new UIfx(upnextSound, {volume: 1.0});
 const wrong = new UIfx(wrongSound, {volume: 0.5,});
+const caw = new UIfx(cawSound, {volume: 0.35,});
+const victory1 = new UIfx(victory1Sound, {volume: 0.3,});
+const victory2 = new UIfx(victory2Sound, {volume: 0.3,});
+const victory3 = new UIfx(victory3Sound, {volume: 0.3,});
+const victory4 = new UIfx(victory4Sound, {volume: 0.3,});
+const victory5 = new UIfx(victory5Sound, {volume: 0.3,});
+const defeat1 = new UIfx(defeat1Sound, {volume: 0.4,});
+const defeat2 = new UIfx(defeat2Sound, {volume: 0.4,});
+const defeat3 = new UIfx(defeat3Sound, {volume: 0.4,});
+const defeat4 = new UIfx(defeat4Sound, {volume: 0.4,});
 
 export default class Main extends React.Component {
 
@@ -32,15 +52,19 @@ export default class Main extends React.Component {
             users:{},
             joined:false,
             started:false,
+            game_over:false,
             loading:false,
 
             image_sources:["yGUC9", "NUIuAHY", "VoCv2", "mtzum"],
+            num_ravens:3,
+            num_rounds:7,
+            num_extra_cards:3,
+
             image_links:{},
             cards:{},
             stories: [],
 
             current_round:1,
-            known_stories:[],
             ravens:3,
             psychics:[],
             psychic_names:{},
@@ -72,11 +96,9 @@ export default class Main extends React.Component {
         // websocket onopen event listener
         ws.onopen = () => {
             console.log("connected websocket main component");
-
             this.setState({ ws: ws });
-
             that.timeout = 250; // reset timer to 250 on open of websocket connection 
-            clearTimeout(connectInterval); // clear Interval on on open of websocket connection
+            clearTimeout(connectInterval); // clear Interval on open of websocket connection
         };
 
         ws.onmessage = evt => {
@@ -86,9 +108,19 @@ export default class Main extends React.Component {
                 this.updateUsers(message)
             }else if(data['type'] === "join"){
                 this.join(message)
+            }else if(data['type'] === "game_interrupted"){
+                this.gameInterrupted()
             }else if(data['type'] === "client_id"){
-                 this.setState({'client_id': message, loading:true})
-                 if(message !== "ghost") this.setState({'selected_psychic': parseInt(message)})
+                /*Super messy -- needs to allow changing in lobby, 
+                * Pychics to have their IDs decrease,
+                * And ghost to be changed to psychic at start of game
+                * (in the event that the ghost role got taken while not in lobby during game_over)
+                */
+                if(!this.state.started || (this.state.client_id ==="ghost" && !this.state.game_over) || (this.state.client_id !=="ghost" && message<this.state.client_id)){
+                    this.setState({'client_id': message})
+                }
+            }else if (data['type'] === "loading"){
+                 this.setState({loading:message})
             }else if(data['type'] === "image_links"){
                  this.setState({'image_links': message})
             }else if(data['type'] === "stories"){
@@ -96,7 +128,10 @@ export default class Main extends React.Component {
             }else if(data['type'] === "state"){
                  this.updateState(message)
             }else if(data['type'] === "start"){
-                 this.startGame(message)
+                if(this.state.client_id !== "ghost"){
+                    this.setState({'selected_psychic': parseInt(this.state.client_id)})
+                }
+                this.startGame(message)
             }else if(data['type'] === "chat_message"){
                  this.handleChatMessage(message)
             }else if(data['type'] === "reject"){
@@ -113,7 +148,6 @@ export default class Main extends React.Component {
                 )} second.`,
                 e.reason
             );
-
             that.timeout = that.timeout + that.timeout; //increment retry interval
             connectInterval = setTimeout(this.check, Math.min(10000, that.timeout)); //call check function after timeout
         };
@@ -124,7 +158,6 @@ export default class Main extends React.Component {
                 err.message,
                 "Closing socket"
             );
-
             ws.close();
         };
     }
@@ -148,31 +181,25 @@ export default class Main extends React.Component {
 //////////////////////////////////////////////////////////////////////////////////////////
 
     updateUsers = (message) =>{
-        this.setUserList(message)
-        // if(this.state.started){
-        //     wrong.play(1.0)
-        //     alert("One of the players left the room, so you all lose.")
-        //     this.setState({started:false}) 
-        // }
-    }
-    
-    setUserList = (message) =>{
         var psychic_names = {}
+        var ghost_included = false
         for(var user_id in message){
             if(message[user_id]["pid"] >= 0){
                 psychic_names[message[user_id]["pid"]] = message[user_id]["name"]
+            }else{
+                ghost_included = true
             }
         }
         this.setState({users: message, psychic_names:psychic_names})
     }
-
+    
     join = (message) =>{
         this.setState(state=>{
-            var log = state.chatlog
-            var msg = {"user": "system", 'text': "Joined room "+message, 'type':"system", }
-            log.unshift(msg)
+            // var log = state.chatlog
+            // var msg = {"user": "system", 'text': "Joined room "+message, 'type':"system", }
+            // log.unshift(msg)
             return({
-                chatlog:log,
+                // chatlog:log,
                 joined: true, roomname:message
             })
         })
@@ -186,18 +213,19 @@ export default class Main extends React.Component {
         /* Attempting to preload images, not working properly
         * Probably because images are too large, literally can't preload em all.
         * Though I wonder if we could add something here to force it to wait for them to successfully load...
+        * But that would cause loooong loading times. 
+        * Maybe start by preloading just the first set of characters and dreams?
         */
-        for(let key in this.state.image_links['dreams']){
-            var img=new Image();
-            img.src=this.state.image_links['dreams'][key];
-        }
-        for(let card_links of this.state.image_links['cards']){
-            for(let key in card_links){
-                var img=new Image();
-                img.src=card_links[key];
-            }                
-        }
-        console.log("HMMMmmmm")
+        // for(let key in this.state.image_links['dreams']){
+        //     var img=new Image();
+        //     img.src=this.state.image_links['dreams'][key];
+        // }
+        // for(let card_links of this.state.image_links['cards']){
+        //     for(let key in card_links){
+        //         var img=new Image();
+        //         img.src=card_links[key];
+        //     }                
+        // }
         this.setState({
             started: true,
             selected:[],
@@ -205,7 +233,7 @@ export default class Main extends React.Component {
             selected_dream:null,
             selected_stage:0,
             cards: message,
-            loading:false
+            game_over:false
         })
         if(this.state.client_id === "ghost"){
             this.setState({
@@ -220,6 +248,20 @@ export default class Main extends React.Component {
         }
     }
 
+    gameInterrupted = () =>{
+        if(this.state.client_id === "ghost"){
+           this.systemMessage("All psychics disconnected.")
+        }else{
+           this.systemMessage("Ghost disconnected.")
+        }
+        wrong.play(1.0)
+        this.leaveGame()
+    }
+
+    leaveGame = () =>{
+        this.setState({started:false}) 
+    }
+
     leaveRoom = () =>{
         this.send('leave', "leave")
         this.setState({joined: false})
@@ -227,15 +269,7 @@ export default class Main extends React.Component {
 
     updateState = (message) =>{
         //If it's a new round, correctly re-render view and play noises
-        if(message["status"] === "lost"){
-            wrong.play(1.0)
-            alert("You didn't make it. Better luck next time.")
-            this.setState({started:false}) 
-        }else if(message["status"] === "won"){
-            correct.play(1.0)
-            alert("You win!")
-            this.setState({started:false}) 
-        }else if(this.isNewRound(message)){
+        if(this.isNewRound(message)){
             if(this.wasCorrect(message, this.state.selected_psychic)){
                 this.setState({
                     selected_stage: message['psychics'][this.state.selected_psychic]['stage'],
@@ -252,18 +286,67 @@ export default class Main extends React.Component {
                     })
                 }
             }
-            if(this.state.client_id === "ghost"){
+            if(message["status"] == "won"){
+                this.setState({'game_over': true})
+                var r = Math.floor(Math.random() * 5);
+                switch(r) {
+                    case 0:
+                        victory1.play(1.0)
+                        break;
+                    case 1:
+                        victory2.play(1.0)
+                        break;
+                    case 2:
+                        victory3.play(1.0)
+                        break;
+                    case 3:
+                        victory4.play(1.0)
+                        break;
+                    case 4:
+                        victory5.play(1.0)
+                        break;
+                }
+                this.systemMessage("You win!")
+            }else if(message["status"] == "lost"){ 
+                this.setState({'game_over': true})
+                var r = Math.floor(Math.random() * 4);
+                switch(r) {
+                    case 0:
+                        defeat1.play(1.0)
+                        break;
+                    case 1:
+                        defeat2.play(1.0)
+                        break;
+                    case 2:
+                        defeat3.play(1.0)
+                        break;
+                    case 3:
+                        defeat4.play(1.0)
+                        break;
+                }
+                this.systemMessage("You lose!")
+            }else if(this.state.client_id === "ghost"){
                 upnext.play(1.0)
             }else{
                 if(this.wasCorrect(message, this.state.client_id)){
                     correct.play(1.0)
+                    this.systemMessage("You were... coOrRecTt!")
                 }else if(this.state.psychics[this.state.client_id]['stage']<=2){
                     wrong.play(1.0)
+                    this.systemMessage("You were... wrooOoOong!")
                 }
             }
         //if the client has been clued, play the upnext noise
         }else if(this.clientClued(message)){
             upnext.play(1.0)
+        }
+        if(this.state.selected_psychic >= Object.keys(message["psychics"]).length){
+            this.setState({
+                selected_stage: this.state.psychics[0]['stage'],
+                selected_card:this.state.psychics[0]['current_guess'],
+                selected_dream:null,
+                selected_psychic:0
+            })
         }
         this.setState({
             psychics: message["psychics"],
@@ -309,9 +392,23 @@ export default class Main extends React.Component {
     }
 
     handleChatMessage = (message) =>{
+        if(message["text"].includes("CAW CAW!")){
+            caw.play(1.0)
+        }
         this.setState(state=>{
             var log = state.chatlog
-            var msg = {"user": message["user"], "text":message["text"], "type":"normal", "ghost":message["ghost"]}
+            var msg = {"user": message["user"], "text":message["text"], "type":message["type"]}
+            log.unshift(msg)
+            return({
+                chatlog:log,
+            })
+        })
+    }
+
+    systemMessage = (message) =>{
+        this.setState(state=>{
+            var log = state.chatlog
+            var msg = {"user": "system", 'text': message, 'type':"system", }
             log.unshift(msg)
             return({
                 chatlog:log,
@@ -484,116 +581,66 @@ export default class Main extends React.Component {
                             <div className = "nicebox" style={{padding:"10px"}}>
                                 <h3>
                                     Image sources 
-                                    <span style={{fontWeight:"normal", fontSize:".8em"}}> (Must be IDs of Imgur albums. Will only apply if *you* start the game.)</span>
+                                    <span style={{fontWeight:"normal", fontSize:".8em"}}> (Select options or paste custom Imgur album IDs. Choices will only apply if *you* start the game.)</span>
                                 </h3>
                                 <div>
-                                    Dream source
-                                    <input type="text" value={this.state.image_sources[0]} 
-                                        onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[0] = val; return(state)})}}
-                                    />
-                                    <button type="button"
-                                        onClick={(evt)=> {this.setState((state)=>{state.image_sources[0] = "yGUC9"; return(state)})}}
-                                    >
-                                        Weird gifs 1
-                                    </button>
-                                    <button type="button"
-                                        onClick={(evt)=> {this.setState((state)=>{state.image_sources[0] = "Tf4Nc"; return(state)})}}
-                                    >
-                                        Simpsons
-                                    </button>
-                                    <button type="button"
-                                        onClick={(evt)=> {this.setState((state)=>{state.image_sources[0] = "vdLZg"; return(state)})}}
-                                    >
-                                        Zdzisław Beksiński
-                                    </button>
-                                    <button type="button"
-                                        onClick={(evt)=> {this.setState((state)=>{state.image_sources[0] = "oGo8Vup"; return(state)})}}
-                                    >
-                                        Cursed Images
-                                    </button>
+                                    <label>
+                                        Dream source
+                                        <select onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[0] = val; return(state)})}}>
+                                            <option value="yGUC9">Weird gifs</option>
+                                            <option value="Tf4Nc">Simpsons gifs</option>
+                                            <option value="vdLZg">Creepy Art</option>
+                                            <option value="oGo8Vup">Cursed Images</option>
+                                        </select>
+                                        <input type="text" value={this.state.image_sources[0]} 
+                                            onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[0] = val; return(state)})}}
+                                        />
+                                    </label>
                                 </div>
                                 <div>
-                                    Suspect source
-                                    <input type="text"  value={this.state.image_sources[1]}
-                                        onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[1] = val; return(state)})}}
-                                    />
-                                    <button type="button"
-                                        onClick={(evt)=> {this.setState((state)=>{state.image_sources[1] = "NUIuAHY"; return(state)})}}
-                                    >
-                                        Smash Bros.
-                                    </button>
-                                    <button type="button"
-                                        onClick={(evt)=> {this.setState((state)=>{state.image_sources[1] = "W6FgJ"; return(state)})}}
-                                    >
-                                        Ovrvwatcth
-                                    </button>
-                                    <button type="button"
-                                        onClick={(evt)=> {this.setState((state)=>{state.image_sources[1] = "ageiv"; return(state)})}}
-                                    >
-                                        Misc. Characters
-                                    </button>
-                                    <button type="button"
-                                        onClick={(evt)=> {this.setState((state)=>{state.image_sources[1] = "NEoYMSr"; return(state)})}}
-                                    >
-                                        Cursed Toys
-                                    </button>
+                                    <label>
+                                        Suspect source
+                                        <select onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[1] = val; return(state)})}}>
+                                            <option value="NUIuAHY">Smash Bros.</option>
+                                            <option value="W6FgJ">Omverwanch</option>
+                                            <option value="ageiv">Misc. Characters</option>
+                                            <option value="NEoYMSr">Cursed Toys</option>
+                                            <option value="7d3zQ">Meme Team c. 2010</option>
+                                            <option value="4W4YZ">TF2</option>
+                                        </select>
+                                        <input type="text" value={this.state.image_sources[1]} 
+                                            onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[1] = val; return(state)})}}
+                                        />
+                                    </label>
                                 </div>
                                 <div>
-                                    Place source
-                                    <input type="text" value={this.state.image_sources[2]}
-                                        onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[2] = val; return(state)})}}
-                                    />
-                                    <button type="button"
-                                        onClick={(evt)=> {this.setState((state)=>{state.image_sources[2] = "VoCv2"; return(state)})}}
-                                    >
-                                        Creepy places 1
-                                    </button>
-                                    <button type="button"
-                                        onClick={(evt)=> {this.setState((state)=>{state.image_sources[2] = "MA55k"; return(state)})}}
-                                    >
-                                        Creepy places 2
-                                    </button>
-                                    <button type="button"
-                                        onClick={(evt)=> {this.setState((state)=>{state.image_sources[2] = "9JUQg"; return(state)})}}
-                                    >
-                                        Fighting stages
-                                    </button>
-                                    <button type="button"
-                                        onClick={(evt)=> {this.setState((state)=>{state.image_sources[2] = "jhxPqxh"; return(state)})}}
-                                    >
-                                        Smash stages
-                                    </button>
-                                    <button type="button"
-                                        onClick={(evt)=> {this.setState((state)=>{state.image_sources[2] = "RqkUd8g"; return(state)})}}
-                                    >
-                                        Cursed Toilets
-                                    </button>
+                                    <label>
+                                        Place source
+                                        <select onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[2] = val; return(state)})}}>
+                                            <option value="VoCv2">Creepy places 1</option>
+                                            <option value="MA55k">Creepy places 2</option>
+                                            <option value="9JUQg">Fighting stages</option>
+                                            <option value="jhxPqxh">Smash stages</option>
+                                            <option value="RqkUd8g">Toilets</option>
+                                        </select>
+                                        <input type="text" value={this.state.image_sources[2]} 
+                                            onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[2] = val; return(state)})}}
+                                        />
+                                    </label>
                                 </div>
                                 <div>
-                                    Thing source
-                                    <input type="text" value={this.state.image_sources[3]}
-                                        onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[3] = val; return(state)})}}
-                                    />
-                                    <button type="button"
-                                        onClick={(evt)=> {this.setState((state)=>{state.image_sources[3] = "mtzum"; return(state)})}}
-                                    >
-                                        Bizarro items
-                                    </button>
-                                    <button type="button"
-                                        onClick={(evt)=> {this.setState((state)=>{state.image_sources[3] = "RXFfv"; return(state)})}}
-                                    >
-                                        Prison inventions
-                                    </button>
-                                    <button type="button"
-                                        onClick={(evt)=> {this.setState((state)=>{state.image_sources[3] = "Cyqqv"; return(state)})}}
-                                    >
-                                        Beans
-                                    </button>
-                                    <button type="button"
-                                        onClick={(evt)=> {this.setState((state)=>{state.image_sources[3] = "VyAWb"; return(state)})}}
-                                    >
-                                        Other ways to die
-                                    </button>
+                                    <label>
+                                        Weapon source
+                                        <select onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[3] = val; return(state)})}}>
+                                            <option value="mtzum">Bizarro items</option>
+                                            <option value="RXFfv">Prison inventions</option>
+                                            <option value="Cyqqv">Beans</option>
+                                            <option value="VyAWb">Accidents</option>
+                                        </select>
+                                        <input type="text" value={this.state.image_sources[3]} 
+                                            onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[3] = val; return(state)})}}
+                                        />
+                                    </label>
                                 </div>
                             </div>
                         </div>
@@ -620,8 +667,8 @@ export default class Main extends React.Component {
                 </div>
             </div>
         ):(
-            <div className = "row" style={{overflow:'visible', minHeight: 0, flex:1}}>
-                <div className="nicebox" style={{minHeight: 0, flex:2, overflow:'auto', margin:'3px', padding:'3px', display:'flex', alignItems:'center', justifyContent:"center"}}>
+            <div style={{overflow:'visible', minHeight: 0, flex:1}}>
+                <div className="nicebox" style={{minHeight: 0, flex:2, flexDirection:"column", overflow:'auto', margin:'3px', padding:'3px', display:'flex', alignItems:'center', justifyContent:"center"}}>
                     <div className="row">
                         <div style={{width:"33%", padding:"3px", boxSizing:"border-box", textAlign:"center"}}>
                             <IconContext.Provider value={{ size:"3em", color:"black", className: "global-class-name" }}>
@@ -663,6 +710,16 @@ export default class Main extends React.Component {
                             />
                         </div>
                     </div>
+                    {this.state.game_over && 
+                        <div className="row">
+                            <button 
+                                type="button" 
+                                onClick={()=>{this.leaveGame()}}
+                            >
+                                Return to Lobby
+                            </button>
+                        </div>
+                    }
                 </div>
             </div>
         )
@@ -777,12 +834,12 @@ export default class Main extends React.Component {
                 <div style={{padding:"2px", flex:'1',  boxSizing:"border-box", backgroundColor:"white", minHeight: '0px', width:"100%", overflow:"auto", display:"flex", flexDirection:"column-reverse"}}>
                     {
                         this.state.chatlog.map((message, index) => {
-                            var size = message["ghost"]? "2em" : ".8em"
-                            if(message["type"] === "normal"){
+                            var size = (message["type"] == "ghost" ? "2em" : ".8em")
+                            if(message["type"] !== "system"){
                                 var color = (message["user"] === this.state.username) ? "green" : "black"
                                 return(
                                     <div key={index} style={{padding:"3px 0px"}}>
-                                        <div style = {{fontSize:".6em", opacity:".5", color:color}}>{message["ghost"]?message["user"]+"(GHOST)":message["user"]}</div>
+                                        <div style = {{fontSize:".6em", opacity:".5", color:color}}>{message["type"] == "ghost"?message["user"]+"(GHOST)":message["user"]}</div>
                                         <div style = {{fontSize:size, color:color}}>{message["text"]}</div>
                                     </div>
                                 )
@@ -813,20 +870,28 @@ export default class Main extends React.Component {
         return(
             <div className = "hand" style={{flex:1,  justifyContent:"space-between", height:'100%', overflowX:'auto', "textAlign":'center'}}>
                 <div style={{flex:1, textAlign:"left"}}>
-                    <h3 style={{margin:"0px"}}>Round</h3>
-                    <h2 style={{margin:"0px"}}>{this.state.current_round}/7</h2>
+                    {this.state.game_over?
+                        <h2 style={{margin:"0px"}}>Game over!</h2>
+                    :
+                        <div>
+                            <h3 style={{margin:"0px"}}>Round</h3>
+                            <h2 style={{margin:"0px"}}>{this.state.current_round}/7</h2>
+                        </div>
+                    }
                 </div>
                 <div className = "hand">
                     <div 
                     className="card"
                     style = {{borderColor:"blue", backgroundColor:bgcolor, borderStyle:border, display:'flex', flexDirection:"column", alignItems:"stretch", justifyContent:"space-around"}}
                     onClick={()=>{
-                        this.setState({
-                            selected_stage: this.state.psychics[this.state.client_id]['stage'],
-                            selected_card:this.state.psychics[this.state.client_id]['current_guess'],
-                            selected_dream:null,
-                            selected_psychic:parseInt(this.state.client_id)
-                        })
+                        if(this.state.selected_psychic !== this.state.client_id){
+                            this.setState({
+                                selected_stage: this.state.psychics[this.state.client_id]['stage'],
+                                selected_card:this.state.psychics[this.state.client_id]['current_guess'],
+                                selected_dream:null,
+                                selected_psychic:parseInt(this.state.client_id)
+                            })
+                        }
                     }}
                     >
                         <div style={{overflow:"hidden"}}>{this.state.psychic_names[this.state.client_id]}</div>
@@ -858,7 +923,7 @@ export default class Main extends React.Component {
                                     className="card"
                                     style = {{backgroundColor:bgcolor, borderStyle:border, display:'flex', flexDirection:"column", alignItems:"stretch", justifyContent:"space-around"}}
                                     onClick={()=>{
-                                        if(psychic_id !== this.state.selected_psychic){
+                                        if(parseInt(psychic_id) !== this.state.selected_psychic){
                                             this.setState({
                                                 selected_stage: this.state.psychics[psychic_id]['stage'],
                                                 selected_card:this.state.psychics[psychic_id]['current_guess'],
@@ -901,8 +966,14 @@ export default class Main extends React.Component {
         return(
             <div className = "hand" style={{flex:1,  justifyContent:"space-between", height:'100%', overflow:'auto', "textAlign":'center'}}>
                 <div style={{flex:1, textAlign:"left"}}>
-                    <h3 style={{margin:"0px"}}>Round</h3>
-                    <h2 style={{margin:"0px"}}>{this.state.current_round}/7</h2>
+                    {this.state.game_over?
+                        <h2 style={{margin:"0px"}}>Game over!</h2>
+                    :
+                        <div>
+                            <h3 style={{margin:"0px"}}>Round</h3>
+                            <h2 style={{margin:"0px"}}>{this.state.current_round}/7</h2>
+                        </div>
+                    }
                 </div>
                 <div className = "hand">
                     {Object.keys(this.state.psychics).map((psychic_id, index) => {
@@ -993,7 +1064,7 @@ export default class Main extends React.Component {
                     <h3>Clues</h3>
                     <div className="hand">
                         {this.state.ghost["hand"].map((card, index) => {
-                            const color = this.state.selected.includes(card) ? "blue" : "red";
+                            const color = this.state.selected.includes(card) ? "rgba(0,0,255,1)" : "rgba(255,0,0,0.3)";
                             const border = card === this.state.selected_dream ? "dashed" : "solid" ;
                             return(
                                 <img 
@@ -1038,7 +1109,7 @@ export default class Main extends React.Component {
                         <button 
                             type="button" 
                             onClick={()=>this.useRaven()}
-                            disabled={this.state.ravens===0}
+                            disabled={this.state.game_over || this.state.ravens===0}
                         >
                             Redraw {this.state.selected.length} clues. ({this.state.ravens} uses)
                         </button>
@@ -1143,7 +1214,7 @@ export default class Main extends React.Component {
             return(  
                 <div  style={{height:"100%", width:"100%", display:'flex', flexDirection:'column', justifyContent:'center'}}>
                     <img 
-                        style={{maxHeight:"100%", maxWidth:"100%",  objectFit: "contain"}} 
+                        style={{maxHeight:"90%", maxWidth:"100%",  objectFit: "contain"}} 
                         src={this.state.image_links['cards'][this.state.selected_stage][this.state.selected_card]}
                     />
                     <div style={{textAlign:'center'}} >
