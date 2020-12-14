@@ -55,7 +55,7 @@ export default class Main extends React.Component {
             game_over:false,
             loading:false,
 
-            image_sources:["yGUC9", "NUIuAHY", "VoCv2", "mtzum"],
+            image_sources:["65X9xYV", "J85fFat", "fMC79b8", "mtzum"],
             num_ravens:3,
             num_rounds:7,
             num_extra_cards:3,
@@ -587,10 +587,12 @@ export default class Main extends React.Component {
                                     <label>
                                         Dream source
                                         <select onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[0] = val; return(state)})}}>
-                                            <option value="yGUC9">Weird gifs</option>
-                                            <option value="Tf4Nc">Simpsons gifs</option>
                                             <option value="vdLZg">Creepy Art</option>
                                             <option value="oGo8Vup">Cursed Images</option>
+                                            <option value="65X9xYV" selected>Mysterium</option>
+                                            <option value="Tf4Nc">Simpsons Gifs</option>
+                                            <option value="B9ukS">Surreal Art</option>
+                                            <option value="yGUC9">Weird Gifs</option>
                                         </select>
                                         <input type="text" value={this.state.image_sources[0]} 
                                             onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[0] = val; return(state)})}}
@@ -601,12 +603,18 @@ export default class Main extends React.Component {
                                     <label>
                                         Suspect source
                                         <select onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[1] = val; return(state)})}}>
-                                            <option value="NUIuAHY">Smash Bros.</option>
-                                            <option value="W6FgJ">Omverwanch</option>
-                                            <option value="ageiv">Misc. Characters</option>
                                             <option value="NEoYMSr">Cursed Toys</option>
+                                            <option value="WJ0gR">Jojo Stands</option>
                                             <option value="7d3zQ">Meme Team c. 2010</option>
+                                            <option value="ageiv">Misc. Characters</option>
+                                            <option value="J85fFat" selected>Mysterium</option>
+                                            <option value="W6FgJ">Overwatch (?)</option>
+                                            <option value="hNU02">Pokemon (Realistic)</option>
+                                            <option value="GF5ScJI">Psychedelic Portraits</option>
+                                            <option value="NUIuAHY">Smash Bros.</option>
+                                            <option value="g0pzP">Snakes in Hats</option>
                                             <option value="4W4YZ">TF2</option>
+                                            <option value="HpoSd">U.S. Presidents</option>
                                         </select>
                                         <input type="text" value={this.state.image_sources[1]} 
                                             onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[1] = val; return(state)})}}
@@ -617,10 +625,12 @@ export default class Main extends React.Component {
                                     <label>
                                         Place source
                                         <select onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[2] = val; return(state)})}}>
-                                            <option value="VoCv2">Creepy places 1</option>
-                                            <option value="MA55k">Creepy places 2</option>
-                                            <option value="9JUQg">Fighting stages</option>
-                                            <option value="jhxPqxh">Smash stages</option>
+                                            <option value="VoCv2">Creepy Places 1</option>
+                                            <option value="MA55k">Creepy Places 2</option>
+                                            <option value="nZv1Czp">Environmental Storytelling</option>
+                                            <option value="9JUQg">Fighting Game Stages</option>
+                                            <option value="fMC79b8" selected>Mysterium</option>
+                                            <option value="jhxPqxh">Smash Bros. Stages</option>
                                             <option value="RqkUd8g">Toilets</option>
                                         </select>
                                         <input type="text" value={this.state.image_sources[2]} 
@@ -632,10 +642,12 @@ export default class Main extends React.Component {
                                     <label>
                                         Weapon source
                                         <select onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[3] = val; return(state)})}}>
-                                            <option value="mtzum">Bizarro items</option>
-                                            <option value="RXFfv">Prison inventions</option>
-                                            <option value="Cyqqv">Beans</option>
                                             <option value="VyAWb">Accidents</option>
+                                            <option value="Cyqqv">Beans in Things</option>
+                                            <option value="mtzum">Bizarro World Items</option>
+                                            <option value="dzppwsZ">Household Spaceships</option>
+                                            <option value="Vpiu5It" selected>Mysterium</option>
+                                            <option value="RXFfv">Prison Inventions</option>
                                         </select>
                                         <input type="text" value={this.state.image_sources[3]} 
                                             onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[3] = val; return(state)})}}
@@ -1252,7 +1264,7 @@ export default class Main extends React.Component {
                 <div className="hand" >
                 {
                     this.state.cards[cardtype].map((card, index) => {
-                        const color = card === this.state.stories[this.state.selected_psychic][this.state.selected_stage] ? "yellow" : "black" ;
+                        const color = card === this.state.stories[this.state.selected_psychic][this.state.selected_stage] ? "orange" : "black" ;
                         const border = this.cardSelected(card)? "dashed" : "solid" ;
                         const opacity = this.cardTaken(card)? ".4" : "1" ;
                         return(
