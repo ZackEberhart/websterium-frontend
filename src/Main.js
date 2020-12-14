@@ -1,7 +1,13 @@
-import React from 'react';
-import Magnifier from "react-magnifier";
-import UIfx from 'uifx'; 
 import './Main.css';
+
+import React from 'react';
+import UIfx from 'uifx'; 
+import Magnifier from "react-magnifier";
+import { IconContext } from "react-icons";
+import MaterialTable from "material-table"
+import {Button, IconButton, TextField, Select} from '@material-ui/core';
+import {Refresh, ArrowBack, Send} from '@material-ui/icons';
+import { FaCrow, FaGhost, FaHome, FaEye, FaHammer, FaUserNinja} from "react-icons/fa";
 import notificationSound from './assets/message.mp3';
 import correctSound from './assets/correct.wav';
 import guessSound from './assets/guess.wav';
@@ -18,8 +24,6 @@ import defeat2Sound from './assets/defeat2.mp3';
 import defeat3Sound from './assets/defeat3.mp3';
 import defeat4Sound from './assets/defeat4.mp3';
 import { config } from './Config.js'
-import { IconContext } from "react-icons";
-import { FaGhost, FaHome, FaEye, FaHammer, FaUserNinja} from "react-icons/fa";
 
 const notification = new UIfx(notificationSound, {volume: 0.3});
 const correct = new UIfx(correctSound, {volume: 1.0});
@@ -47,11 +51,17 @@ export default class Main extends React.Component {
             chatOpen:false,
             chatMsg:"",
 
+            rooms:[],
+            viewing_rooms: false,
+            rooms_loading:false,
+
             ws: null,
             client_id: null,
+            host:false,
             username:"",
             roomname:"default",
             users:{},
+
             joined:false,
             started:false,
             game_over:false,
@@ -108,6 +118,8 @@ export default class Main extends React.Component {
             const message = data["message"]
             if(data["type"] === "user_list"){
                 this.updateUsers(message)
+            }else if(data['type'] === "rooms"){
+                this.setState({"rooms":message, "rooms_loading":false})
             }else if(data['type'] === "join"){
                 this.join(message)
             }else if(data['type'] === "game_interrupted"){
@@ -118,9 +130,10 @@ export default class Main extends React.Component {
                 * And ghost to be changed to psychic at start of game
                 * (in the event that the ghost role got taken while not in lobby during game_over)
                 */
-                if(!this.state.started || (this.state.client_id ==="ghost" && !this.state.game_over) || (this.state.client_id !=="ghost" && message<this.state.client_id)){
-                    this.setState({'client_id': message})
+                if(!this.state.started || (this.state.client_id ==="ghost" && !this.state.game_over) || (this.state.client_id !=="ghost" && message["id"]<this.state.client_id)){
+                    this.setState({'client_id': message["id"]})
                 }
+                this.setState({'host': message["host"]})
             }else if (data['type'] === "loading"){
                  this.setState({loading:message})
             }else if(data['type'] === "image_links"){
@@ -468,61 +481,102 @@ export default class Main extends React.Component {
 
 ///////////////////////////////////Main rooms
 
+    columns = [{title:"Room Name", "field":"roomname"}, 
+               {title:"Game Status", "field":"status"},
+               {title:"#Players", "field":"players"}]
     anteroom = () => {
         if(!this.state.joined){
-            return(
-                <div className="container" style={{justifyContent:"center",alignItems:"center"}}>
-                    <h1>Websterium</h1>
-                    <div className="nicebox" style={{padding:"20px", fontSize:"1.5em"}}>
-                        <div className = "row">
-                            Room name: 
-                            <input type="text"  value={this.state.roomname}
-                                onChange={(evt)=> {const val = evt.target.value; this.setState({roomname:val})}}
-                                onKeyPress={(evt)=>{
-                                    if(evt.key === 'Enter'){
-                                        if(this.state.username.length > 25){
-                                            alert("Go for a user name that's <=25 characters long.")
-                                        }else{
-                                            this.send('join', {"roomname": this.state.roomname, "username":this.state.username})
+            if (!this.state.viewing_rooms){
+                return(
+                    <div className="container" style={{justifyContent:"center",alignItems:"center"}}>
+                        <h1>Websterium</h1>
+                        <div className="nicebox" style={{display:"flex", flexDirection:"column", alignItems:"center", padding:"20px", fontSize:"1.5em"}}>
+                            <div className = "row">
+                                <TextField
+                                    id="outlined-basic" label="Username" variant="outlined"
+                                    value={this.state.username}
+                                    style={{width:"50%", minWidth:"400px"}}
+                                    onChange={(evt)=> {const val = evt.target.value; this.setState({username:val})}}
+                                    onKeyPress={(evt)=>{
+                                        if(evt.key === 'Enter'){
+                                            if(this.state.username.length < 1){
+                                                alert("Please enter a username")
+                                            }else if(this.state.username.length > 25){
+                                                alert("Go for a user name that's <=25 characters long.")
+                                            }else{
+                                                this.send('join', {"username":this.state.username})
+                                            }
                                         }
-                                    }
-                                }}
-                            />
-                        </div>
-                        <br/>
-                        <div className = "row">
-                            User name: 
-                            <input type="text"  
-                                value={this.state.username}
-                                onChange={(evt)=> {const val = evt.target.value; this.setState({username:val})}}
-                                onKeyPress={(evt)=>{
-                                    if(evt.key === 'Enter'){
-                                        if(this.state.username.length > 25){
-                                            alert("Go for a user name that's <=25 characters long.")
-                                        }else{
-                                            this.send('join', {"roomname": this.state.roomname, "username":this.state.username})
-                                        }
-                                    }
-                                }}
-                            />
-                        </div>
-                        <br/>
-                        <div className = "row">
-                            <button type="button" 
+                                    }}
+                                />
+                            </div>
+                            <br/>
+                            <Button 
+                                variant="contained"
+                                style={{margin:"5px", width:"100%"}}
                                 onClick={() => {
-                                    if(this.state.username.length > 25){
+                                    if(this.state.username.length < 1){
+                                        alert("Please enter a username")
+                                    }else if(this.state.username.length > 25){
                                         alert("Go for a user name that's <=25 characters long.")
                                     }else{
-                                        this.send('join', {"roomname": this.state.roomname, "username":this.state.username})
+                                        this.setState({viewing_rooms:true, rooms_loading:true})
+                                        setTimeout(() => { this.send('get_rooms', {}); }, 200);
                                     }
                                 }}
                             >
                                 Join room
-                            </button>
+                            </Button>
+                            <Button
+                                variant="contained"
+                                style={{margin:"5px", width:"100%"}}
+                                onClick={() => {
+                                    if(this.state.username.length < 1){
+                                        alert("Please enter a username")
+                                    }else if(this.state.username.length > 25){
+                                        alert("Go for a user name that's <=25 characters long.")
+                                    }else{
+                                        this.send('create', {"username":this.state.username})
+                                    }
+                                }}
+                            >
+                                Create room
+                            </Button>
                         </div>
                     </div>
-                </div>
-            )
+                )
+            }else{
+                return(
+                    <div className="container" style={{ height:"100%", justifyContent:"center",alignItems:"center"}}>
+                        <div style={{width:"70%", minWidth:"300px", overflow: 'auto', textAlign:"center"}}>
+                            <h2 style={{margin:"0px"}}>Websterium</h2>
+                            <row style={{alignItems:"center",width:"100%", display:"flex", justifyContent:'space-between'}}>
+                                <IconButton type="button" onClick={()=>this.setState({viewing_rooms:false})}>
+                                    <ArrowBack/>
+                                </IconButton>
+                                <IconButton type="button" onClick={()=>{
+                                    this.setState({rooms_loading:true})
+                                    setTimeout(() => { this.send('get_rooms', {}); }, 200);
+                                }}>
+                                    <Refresh/>
+                                </IconButton>
+                            </row>
+                            <MaterialTable 
+                                title="Rooms" 
+                                columns={this.columns} 
+                                data={this.state.rooms} 
+                                isLoading = {this.state.rooms_loading}
+                                style={{backgroundColor:"#f7f7f7", boxShadow:"0 4px 8px 0 rgba(0, 0, 0, 0.15), 0 6px 20px 0 rgba(0, 0, 0, 0.19)", borderRadius:"5px"}}
+                                onRowClick={(event, rowData)=>{
+                                    this.send('join', {"username":this.state.username, "roomname":rowData["roomname"]})}
+                                }
+                                localization = {{body:{emptyDataSourceMessage:"No rooms found."}}}
+                                options={{search:false, showTitle:false, toolbar:false}}
+                            />
+                        </div>
+                    </div>
+                )
+            }
         }else{
             const users = <div style={{flex:1, display:'flex', flexDirection:'column'}}>
                 <div style={{backgroundColor:"#791E94", color:"#F7F7F7", padding:"10px"}}>
@@ -580,195 +634,197 @@ export default class Main extends React.Component {
                             </div>
                             <br/>
                             <div className="row" style={{padding:"10px 0px"}}>
-                                <button type="button" onClick={() => this.send('setRole', 'ghost')}>
-                                    <IconContext.Provider value={{ size:"2em", color: "black", className: "global-class-name" }}>
+                                <IconButton onClick={() => this.send('setRole', 'ghost')}>
+                                    <IconContext.Provider value={{ size:"2em", color: "#791E94", className: "global-class-name" }}>
                                         <div>
                                             <FaGhost />
                                         </div>
                                     </IconContext.Provider>
-                                </button>
+                                </IconButton>
                                 <h3 style={{padding:"0px 5px"}}>Select role</h3>
-                                <button type="button" onClick={() => this.send('setRole', 'psychic')}>
-                                    <IconContext.Provider value={{ size:"2em", color: "black", className: "global-class-name" }}>
+                                <IconButton  onClick={() => this.send('setRole', 'psychic')}>
+                                    <IconContext.Provider value={{ size:"2em", color: "#41D3BD", className: "global-class-name" }}>
                                         <div>
                                             <FaEye />
                                         </div>
                                     </IconContext.Provider>
-                                </button>
+                                </IconButton>
                             </div>
-                            <div className = "row">
-                                <button type="button" onClick={this.sendStart }>Start game</button>
-                                <button type="button" onClick={this.leaveRoom}>Leave room</button>
+                            <div className="row">
+                            <Button variant="contained" onClick={this.leaveRoom}>Leave room</Button>
+                            {this.state.host && <Button variant="contained" color="primary" onClick={this.sendStart }>Start game</Button>}
                             </div>
                             <br/>
-                            <div className = "nicebox" style={{display:"flex", padding:"10px"}}>
-                                {false && <div style={{flex:1}}>
-                                    <h4 style={{margin:"0px 0px 10px 0px"}}>
-                                        Options 
-                                    </h4>
-                                    Presets
-                                    <select onChange={(evt) => {const val = evt.target.value; this.setState({num_rounds: val})}}>
-                                        {[5,6,7,8,9,10].map(x=>{return(
-                                            <option value={x}>{x}</option>
-                                            )
-                                        })}
-                                    </select>
-                                    <hr/>
-                                    <table>
-                                        <tr>
-                                            <td>
-                                                <select style={{width:"100%"}} onChange={(evt) => {const val = evt.target.value; this.setState({num_rounds: val})}}>
-                                                    {[5,6,7,8,9,10].map(x=>{return(
-                                                        <option value={x}>{x}</option>
-                                                        )
-                                                    })}
-                                                </select>
-                                            </td>
-                                            <td>
-                                                #Rounds
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            
-                                            <td>
-                                                <select style={{width:"100%"}} onChange={(evt) => {const val = evt.target.value; this.setState({num_rounds: val})}}>
-                                                    {[0, 1, 2, 3, "Unlimited"].map(x=>{return(
-                                                        <option value={x}>{x}</option>
-                                                        )
-                                                    })}
-                                                </select>
-                                            </td>
-                                            <td>
-                                                #Ravens
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            
-                                            <td>
-                                                <select style={{width:"100%"}} onChange={(evt) => {const val = evt.target.value; this.setState({num_rounds: val})}}>
-                                                    {[5,6,7,8,9,10].map(x=>{return(
-                                                        <option value={x}>{x}</option>
-                                                        )
-                                                    })}
-                                                </select>
-                                            </td>
-                                            <td>
-                                                #Dreams in ghost hand
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>
-                                                <select style={{width:"100%"}} onChange={(evt) => {const val = evt.target.value; this.setState({num_rounds: val})}}>
-                                                    {[1,2,3,4,5].map(x=>{return(
-                                                        <option value={x}>{x}</option>
-                                                        )
-                                                    })}
-                                                </select>
-                                            </td>
-                                            <td>
-                                                #Options in each stage
-                                                <br/>
-                                                (#Psychics + x)
-                                            </td>
-                                        </tr>
-                                    </table>      
-                                </div>}
-                                <div style={{flex:2}}>
-                                    <h4 style={{margin:"0px 0px 10px 0px"}}>
-                                        Image sources 
-                                        <span style={{fontWeight:"normal", fontSize:".8em"}}> (Select options or paste custom Imgur album IDs. Choices will only apply if *you* start the game.)</span>
-                                    </h4>
-                                    <table style={{width:"100%"}}>
-                                        <tr>
-                                            <td>
-                                                Dream source
-                                            </td>
-                                            <td>
-                                                <select onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[0] = val; return(state)})}}>
-                                                    <option value="vdLZg">Creepy Art</option>
-                                                    <option value="oGo8Vup">Cursed Images</option>
-                                                    <option value="65X9xYV" selected>Mysterium</option>
-                                                    <option value="Tf4Nc">Simpsons Gifs</option>
-                                                    <option value="B9ukS">Surreal Art</option>
-                                                    <option value="yGUC9">Weird Gifs</option>
-                                                </select>
-                                            </td>
-                                            <td>
-                                                <input type="text" value={this.state.image_sources[0]} 
-                                                    onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[0] = val; return(state)})}}
-                                                />
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>
-                                                Suspect source
-                                            </td>
-                                            <td>
-                                                <select onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[1] = val; return(state)})}}>
-                                                    <option value="NEoYMSr">Cursed Toys</option>
-                                                    <option value="WJ0gR">Jojo Stands</option>
-                                                    <option value="7d3zQ">Meme Team c. 2010</option>
-                                                    <option value="ageiv">Misc. Characters</option>
-                                                    <option value="J85fFat" selected>Mysterium</option>
-                                                    <option value="W6FgJ">Overwatch (?)</option>
-                                                    <option value="hNU02">Pokemon (Realistic)</option>
-                                                    <option value="GF5ScJI">Psychedelic Portraits</option>
-                                                    <option value="aZClIlk">Smash Bros.</option>
-                                                    <option value="g0pzP">Snakes in Hats</option>
-                                                    <option value="4W4YZ">TF2</option>
-                                                    <option value="HpoSd">U.S. Presidents</option>
-                                                </select>
-                                            </td>
-                                            <td>
-                                                <input type="text" value={this.state.image_sources[1]} 
-                                                    onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[1] = val; return(state)})}}
-                                                />
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>
-                                                Place source
-                                            </td>
-                                            <td>
-                                                <select onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[2] = val; return(state)})}}>
-                                                    <option value="VoCv2">Creepy Places 1</option>
-                                                    <option value="MA55k">Creepy Places 2</option>
-                                                    <option value="nZv1Czp">Environmental Storytelling</option>
-                                                    <option value="9JUQg">Fighting Game Stages</option>
-                                                    <option value="fMC79b8" selected>Mysterium</option>
-                                                    <option value="jhxPqxh">Smash Bros. Stages</option>
-                                                    <option value="RqkUd8g">Toilets</option>
-                                                </select>
-                                            </td>
-                                            <td>
-                                                <input type="text" value={this.state.image_sources[2]} 
-                                                    onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[2] = val; return(state)})}}
-                                                />
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>
-                                                Weapon source
-                                            </td>
-                                            <td>
-                                                <select onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[3] = val; return(state)})}}>
-                                                    <option value="VyAWb">Accidents</option>
-                                                    <option value="Cyqqv">Beans in Things</option>
-                                                    <option value="mtzum">Bizarro World Items</option>
-                                                    <option value="dzppwsZ">Household Spaceships</option>
-                                                    <option value="Vpiu5It" selected>Mysterium</option>
-                                                    <option value="RXFfv">Prison Inventions</option>
-                                                </select>
-                                            </td>
-                                            <td>
-                                                <input type="text" value={this.state.image_sources[3]} 
-                                                    onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[3] = val; return(state)})}}
-                                                />
-                                            </td>
-                                        </tr>
-                                    </table>
+                            {this.state.host && 
+                                <div className = "nicebox" style={{display:"flex", padding:"10px"}}>
+                                    {false && <div style={{flex:1}}>
+                                        <h4 style={{margin:"0px 0px 10px 0px"}}>
+                                            Options 
+                                        </h4>
+                                        Presets
+                                        <select onChange={(evt) => {const val = evt.target.value; this.setState({num_rounds: val})}}>
+                                            {[5,6,7,8,9,10].map(x=>{return(
+                                                <option value={x}>{x}</option>
+                                                )
+                                            })}
+                                        </select>
+                                        <hr/>
+                                        <table>
+                                            <tr>
+                                                <td>
+                                                    <select style={{width:"100%"}} onChange={(evt) => {const val = evt.target.value; this.setState({num_rounds: val})}}>
+                                                        {[5,6,7,8,9,10].map(x=>{return(
+                                                            <option value={x}>{x}</option>
+                                                            )
+                                                        })}
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    #Rounds
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                
+                                                <td>
+                                                    <select style={{width:"100%"}} onChange={(evt) => {const val = evt.target.value; this.setState({num_rounds: val})}}>
+                                                        {[0, 1, 2, 3, "Unlimited"].map(x=>{return(
+                                                            <option value={x}>{x}</option>
+                                                            )
+                                                        })}
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    #Ravens
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                
+                                                <td>
+                                                    <select style={{width:"100%"}} onChange={(evt) => {const val = evt.target.value; this.setState({num_rounds: val})}}>
+                                                        {[5,6,7,8,9,10].map(x=>{return(
+                                                            <option value={x}>{x}</option>
+                                                            )
+                                                        })}
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    #Visions in ghost hand
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    <select style={{width:"100%"}} onChange={(evt) => {const val = evt.target.value; this.setState({num_rounds: val})}}>
+                                                        {[1,2,3,4,5].map(x=>{return(
+                                                            <option value={x}>{x}</option>
+                                                            )
+                                                        })}
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    #Options in each stage
+                                                    <br/>
+                                                    (#Psychics + x)
+                                                </td>
+                                            </tr>
+                                        </table>      
+                                    </div>}
+                                    <div style={{flex:2}}>
+                                        <h4 style={{margin:"0px 0px 10px 0px"}}>
+                                            Image sources 
+                                            <span style={{fontWeight:"normal", fontSize:".8em"}}> (Select options or paste custom Imgur album IDs. Choices will only apply if *you* start the game.)</span>
+                                        </h4>
+                                        <table style={{width:"100%"}}>
+                                            <tr>
+                                                <td>
+                                                    Dream source
+                                                </td>
+                                                <td>
+                                                    <Select onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[0] = val; return(state)})}}>
+                                                        <option value="vdLZg">Creepy Art</option>
+                                                        <option value="oGo8Vup">Cursed Images</option>
+                                                        <option value="65X9xYV" selected>Mysterium</option>
+                                                        <option value="Tf4Nc">Simpsons Gifs</option>
+                                                        <option value="B9ukS">Surreal Art</option>
+                                                        <option value="yGUC9">Weird Gifs</option>
+                                                    </Select>
+                                                </td>
+                                                <td>
+                                                    <input type="text" value={this.state.image_sources[0]} 
+                                                        onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[0] = val; return(state)})}}
+                                                    />
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    Suspect source
+                                                </td>
+                                                <td>
+                                                    <Select onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[1] = val; return(state)})}}>
+                                                        <option value="NEoYMSr">Cursed Toys</option>
+                                                        <option value="WJ0gR">Jojo Stands</option>
+                                                        <option value="7d3zQ">Meme Team c. 2010</option>
+                                                        <option value="ageiv">Misc. Characters</option>
+                                                        <option value="J85fFat" selected>Mysterium</option>
+                                                        <option value="W6FgJ">Overwatch (?)</option>
+                                                        <option value="hNU02">Pokemon (Realistic)</option>
+                                                        <option value="GF5ScJI">Psychedelic Portraits</option>
+                                                        <option value="aZClIlk">Smash Bros.</option>
+                                                        <option value="g0pzP">Snakes in Hats</option>
+                                                        <option value="4W4YZ">TF2</option>
+                                                        <option value="HpoSd">U.S. Presidents</option>
+                                                    </Select>
+                                                </td>
+                                                <td>
+                                                    <input type="text" value={this.state.image_sources[1]} 
+                                                        onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[1] = val; return(state)})}}
+                                                    />
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    Place source
+                                                </td>
+                                                <td>
+                                                    <Select onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[2] = val; return(state)})}}>
+                                                        <option value="VoCv2">Creepy Places 1</option>
+                                                        <option value="MA55k">Creepy Places 2</option>
+                                                        <option value="nZv1Czp">Environmental Storytelling</option>
+                                                        <option value="9JUQg">Fighting Game Stages</option>
+                                                        <option value="fMC79b8" selected>Mysterium</option>
+                                                        <option value="jhxPqxh">Smash Bros. Stages</option>
+                                                        <option value="RqkUd8g">Toilets</option>
+                                                    </Select>
+                                                </td>
+                                                <td>
+                                                    <input type="text" value={this.state.image_sources[2]} 
+                                                        onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[2] = val; return(state)})}}
+                                                    />
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    Weapon source
+                                                </td>
+                                                <td>
+                                                    <Select onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[3] = val; return(state)})}}>
+                                                        <option value="VyAWb">Accidents</option>
+                                                        <option value="Cyqqv">Beans in Things</option>
+                                                        <option value="mtzum">Bizarro World Items</option>
+                                                        <option value="dzppwsZ">Household Spaceships</option>
+                                                        <option value="Vpiu5It" selected>Mysterium</option>
+                                                        <option value="RXFfv">Prison Inventions</option>
+                                                    </Select>
+                                                </td>
+                                                <td>
+                                                    <input type="text" value={this.state.image_sources[3]} 
+                                                        onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[3] = val; return(state)})}}
+                                                    />
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </div>
                                 </div>
-                            </div>
+                            }
                         </div>
                         <div style={{width:"17vw", minWidth:"150px", height:'100%', padding:'5px', boxSizing:'border-box',}}>
                             <div className="nicebox" style={{width:'100%', overflow:'auto', height:'100%', display:'flex', flexDirection:"column", alignItems:"center"}}>
@@ -996,49 +1052,43 @@ export default class Main extends React.Component {
         return(
             <div className = "hand" style={{flex:1,  justifyContent:"space-between", height:'100%', overflowX:'auto', "textAlign":'center'}}>
                 <div style={{flex:1, textAlign:"left"}}>
-                    {this.state.game_over?
-                        <h2 style={{margin:"0px"}}>Game over!</h2>
-                    :
-                        <div>
-                            <h3 style={{margin:"0px"}}>Round</h3>
-                            <h2 style={{margin:"0px"}}>{this.state.current_round}/7</h2>
-                        </div>
-                    }
-                </div>
-                <div className = "hand">
-                    <div 
-                        className="card"
-                        style = {{borderColor:"#41D3BD", backgroundColor:bgcolor, borderStyle:border, display:'flex', flexDirection:"column", alignItems:"stretch", justifyContent:"space-around"}}
-                        onClick={()=>{
-                            if(this.state.selected_psychic !== this.state.client_id){
-                                this.setState({
-                                    selected_stage: this.state.psychics[this.state.client_id]['stage'],
-                                    selected_card:this.state.psychics[this.state.client_id]['current_guess'],
-                                    selected_dream:null,
-                                    selected_psychic:parseInt(this.state.client_id)
-                                })
-                            }
-                        }}
-                    >
-                        <div style={{overflow:"hidden"}}>{this.state.psychic_names[this.state.client_id]}</div>
-                        <div className="row" style={{justifyContent:"space-around"}}>
-                                <IconContext.Provider value={{ size:"1em", color: this.state.psychics[this.state.client_id].stage===0?"#41D3BD":(this.state.psychics[this.state.client_id].stage>0?"black":"gray"), className: "global-class-name" }}>
+                    <div>
+                        <div 
+                            className="card"
+                            style = {{textAlign:"center", borderColor:"#41D3BD", backgroundColor:bgcolor, borderStyle:border, display:'flex', flexDirection:"column", alignItems:"stretch", justifyContent:"space-around"}}
+                            onClick={()=>{
+                                if(this.state.selected_psychic !== this.state.client_id){
+                                    this.setState({
+                                        selected_stage: this.state.psychics[this.state.client_id]['stage'],
+                                        selected_card:this.state.psychics[this.state.client_id]['current_guess'],
+                                        selected_dream:null,
+                                        selected_psychic:parseInt(this.state.client_id)
+                                    })
+                                }
+                            }}
+                        >
+                            <div style={{overflow:"hidden"}}>{this.state.psychic_names[this.state.client_id]}</div>
+                            <div className="row" style={{justifyContent:"space-around"}}>
+                                <IconContext.Provider value={{ size:"1em", color: this.state.psychics[this.state.client_id].stage===0?"#791E94":(this.state.psychics[this.state.client_id].stage>0?"black":"gray"), className: "global-class-name" }}>
                                     <div>
                                         <FaUserNinja />
                                     </div>
                                 </IconContext.Provider>
-                                <IconContext.Provider value={{ size:"1em", color: this.state.psychics[this.state.client_id].stage===1?"#41D3BD":(this.state.psychics[this.state.client_id].stage>1?"black":"gray"), className: "global-class-name" }}>
+                                <IconContext.Provider value={{ size:"1em", color: this.state.psychics[this.state.client_id].stage===1?"#791E94":(this.state.psychics[this.state.client_id].stage>1?"black":"gray"), className: "global-class-name" }}>
                                     <div>
                                         <FaHome />
                                     </div>
                                 </IconContext.Provider>
-                                <IconContext.Provider value={{ size:"1em", color: this.state.psychics[this.state.client_id].stage===2?"#41D3BD":(this.state.psychics[this.state.client_id].stage>2?"black":"gray"), className: "global-class-name" }}>
+                                <IconContext.Provider value={{ size:"1em", color: this.state.psychics[this.state.client_id].stage===2?"#791E94":(this.state.psychics[this.state.client_id].stage>2?"black":"gray"), className: "global-class-name" }}>
                                     <div>
                                         <FaHammer />
                                     </div>
                                 </IconContext.Provider>
                             </div>
+                        </div>
                     </div>
+                </div>
+                <div className = "hand">
                     {Object.keys(this.state.psychics).map((psychic_id, index) => {
                         if(parseInt(psychic_id) !== this.state.client_id){
                             const border = this.state.selected_psychic === parseInt(psychic_id) ? "dashed" : "solid";
@@ -1061,17 +1111,17 @@ export default class Main extends React.Component {
                                 >
                                     <div style={{overflow:"hidden"}}>{this.state.psychic_names[index]}</div>
                                     <div className="row" style={{justifyContent:"space-around"}}>
-                                        <IconContext.Provider value={{ size:"1em", color: this.state.psychics[psychic_id].stage===0?"#41D3BD":(this.state.psychics[psychic_id].stage>0?"black":"gray"), className: "global-class-name" }}>
+                                        <IconContext.Provider value={{ size:"1em", color: this.state.psychics[psychic_id].stage===0?"#791E94":(this.state.psychics[psychic_id].stage>0?"black":"gray"), className: "global-class-name" }}>
                                             <div>
                                                 <FaUserNinja />
                                             </div>
                                         </IconContext.Provider>
-                                        <IconContext.Provider value={{ size:"1em", color: this.state.psychics[psychic_id].stage===1?"#41D3BD":(this.state.psychics[psychic_id].stage>1?"black":"gray"), className: "global-class-name" }}>
+                                        <IconContext.Provider value={{ size:"1em", color: this.state.psychics[psychic_id].stage===1?"#791E94":(this.state.psychics[psychic_id].stage>1?"black":"gray"), className: "global-class-name" }}>
                                             <div>
                                                 <FaHome />
                                             </div>
                                         </IconContext.Provider>
-                                        <IconContext.Provider value={{ size:"1em", color: this.state.psychics[psychic_id].stage===2?"#41D3BD":(this.state.psychics[psychic_id].stage>2?"black":"gray"), className: "global-class-name" }}>
+                                        <IconContext.Provider value={{ size:"1em", color: this.state.psychics[psychic_id].stage===2?"#791E94":(this.state.psychics[psychic_id].stage>2?"black":"gray"), className: "global-class-name" }}>
                                             <div>
                                                 <FaHammer />
                                             </div>
@@ -1083,6 +1133,14 @@ export default class Main extends React.Component {
                     })}
                 </div>
                 <div style={{flex:1, textAlign:'right'}}>
+                    {this.state.game_over?
+                        <h2 style={{margin:"0px"}}>Game over!</h2>
+                    :
+                        <div>
+                            <h3 style={{margin:"0px"}}>Round</h3>
+                            <h2 style={{margin:"0px"}}>{this.state.current_round}/7</h2>
+                        </div>
+                    }
                 </div>
             </div>
         )
@@ -1092,14 +1150,11 @@ export default class Main extends React.Component {
         return(
             <div className = "hand" style={{flex:1,  justifyContent:"space-between", height:'100%', overflow:'auto', "textAlign":'center'}}>
                 <div style={{flex:1, textAlign:"left"}}>
-                    {this.state.game_over?
-                        <h2 style={{margin:"0px"}}>Game over!</h2>
-                    :
-                        <div>
-                            <h3 style={{margin:"0px"}}>Round</h3>
-                            <h2 style={{margin:"0px"}}>{this.state.current_round}/7</h2>
-                        </div>
-                    }
+                    <div>
+                        <h3 style={{margin:"0px"}}>
+                            <FaCrow style={{position:"relative", top:"5px"}}/>x{this.state.ravens}
+                        </h3>
+                    </div>
                 </div>
                 <div className = "hand">
                     {Object.keys(this.state.psychics).map((psychic_id, index) => {
@@ -1122,17 +1177,17 @@ export default class Main extends React.Component {
                             >
                                 <div style={{overflow:"hidden"}}>{this.state.psychic_names[index]}</div>
                                 <div className="row" style={{justifyContent:"space-around"}}>
-                                    <IconContext.Provider value={{ size:"1em", color: this.state.psychics[psychic_id].stage === 0?"#41D3BD":(this.state.psychics[psychic_id].stage>0?"black":"gray"), className: "global-class-name" }}>
+                                    <IconContext.Provider value={{ size:"1em", color: this.state.psychics[psychic_id].stage === 0?"#791E94":(this.state.psychics[psychic_id].stage>0?"black":"gray"), className: "global-class-name" }}>
                                         <div>
                                             <FaUserNinja />
                                         </div>
                                     </IconContext.Provider>
-                                    <IconContext.Provider value={{ size:"1em", color: this.state.psychics[psychic_id].stage === 1?"#41D3BD":(this.state.psychics[psychic_id].stage>1?"black":"gray"), className: "global-class-name" }}>
+                                    <IconContext.Provider value={{ size:"1em", color: this.state.psychics[psychic_id].stage === 1?"#791E94":(this.state.psychics[psychic_id].stage>1?"black":"gray"), className: "global-class-name" }}>
                                         <div>
                                             <FaHome />
                                         </div>
                                     </IconContext.Provider>
-                                    <IconContext.Provider value={{ size:"1em", color: this.state.psychics[psychic_id].stage === 2?"#41D3BD":(this.state.psychics[psychic_id].stage>2?"black":"gray"), className: "global-class-name" }}>
+                                    <IconContext.Provider value={{ size:"1em", color: this.state.psychics[psychic_id].stage === 2?"#791E94":(this.state.psychics[psychic_id].stage>2?"black":"gray"), className: "global-class-name" }}>
                                         <div>
                                             <FaHammer />
                                         </div>
@@ -1143,6 +1198,14 @@ export default class Main extends React.Component {
                     })}
                 </div>
                 <div style={{flex:1, textAlign:'right'}}>
+                    {this.state.game_over?
+                        <h2 style={{margin:"0px"}}>Game over!</h2>
+                    :
+                        <div>
+                            <h3 style={{margin:"0px"}}>Round</h3>
+                            <h2 style={{margin:"0px"}}>{this.state.current_round}/7</h2>
+                        </div>
+                    }
                 </div>
             </div>
         )
@@ -1158,7 +1221,7 @@ export default class Main extends React.Component {
         if(this.state.client_id!== null && Object.keys(this.state.psychics).length > parseInt(this.state.client_id)){
             return(
                 <div style={{textAlign:'center'}}>
-                    <h3>Clues</h3>
+                    <h3>Visions</h3>
                     <div className="hand">
                         {this.state.psychics[this.state.selected_psychic]['hand'].map((card, index) => {
                             const border = card === this.state.selected_dream ? "dashed" : "solid" ;
@@ -1187,7 +1250,7 @@ export default class Main extends React.Component {
         if(this.state.selected_psychic!=null){
             return(
                 <div style={{textAlign:'center'}} >
-                    <h3>Clues</h3>
+                    <h3>Visions</h3>
                     <div className="hand">
                         {this.state.ghost["hand"].map((card, index) => {
                             const color = this.state.selected.includes(card) ? "rgba(0,0,255,1)" : "rgba(255,0,0,0.3)";
@@ -1225,23 +1288,24 @@ export default class Main extends React.Component {
                         })}
                     </div>   
                     <div>
-                        <button 
-                            type="button" 
+                        <Button 
+
                             onClick={()=>this.sendDreams(this.state.selected_psychic)}
-                            disabled={this.state.selected_stage>2 || this.state.ghost['psychics_clued'].includes(parseInt(this.state.selected_psychic))}
+                            disabled={this.state.selected_stage>2 || this.state.ghost['psychics_clued'].includes(parseInt(this.state.selected_psychic)) || this.state.selected.length==0}
+                            endIcon={<Send/>}
                         >
-                            Send {this.state.selected.length} clues to {this.state.psychic_names[this.state.selected_psychic]}
-                        </button>
-                        <button 
-                            type="button" 
+                            Send Visions
+                        </Button>
+                        <Button 
+                            startIcon={<FaCrow/>}
                             onClick={()=>this.useRaven()}
-                            disabled={this.state.game_over || this.state.ravens===0}
+                            disabled={this.state.game_over || this.state.ravens===0 || this.state.selected.length==0}
                         >
-                            Redraw {this.state.selected.length} clues. ({this.state.ravens} uses)
-                        </button>
+                            Redraw
+                        </Button>
                     </div>
                     <hr/>
-                    <h3>{this.state.psychic_names[this.state.selected_psychic]}'s clues</h3>
+                    <h3>{this.state.psychic_names[this.state.selected_psychic]}'s visions</h3>
                     <div className="hand">
                         {this.state.psychics[this.state.selected_psychic]['hand'].map((card, index) => {
                             const border = card === this.state.selected_dream ? "dashed" : "solid" ;
@@ -1378,8 +1442,8 @@ export default class Main extends React.Component {
                 <div className="hand" >
                 {
                     this.state.cards[cardtype].map((card, index) => {
-                        const color = card === this.state.stories[this.state.selected_psychic][this.state.selected_stage] ? "#41D3BD" : "black" ;
-                        const current = card === this.state.stories[this.state.selected_psychic][this.state.selected_stage] ? "0 0 10px 3px rgba(65, 211, 189, .7)" : "0 0"
+                        const color = card === this.state.stories[this.state.selected_psychic][this.state.selected_stage] ? "#791E94" : "black" ;
+                        const current = card === this.state.stories[this.state.selected_psychic][this.state.selected_stage] ? "0 0 10px 3px rgba(121, 30, 148, .7)" : "0 0"
                         const border = this.cardSelected(card)? "dashed" : "solid" ;
                         const opacity = this.cardTaken(card)? ".4" : "1" ;
                         return(
