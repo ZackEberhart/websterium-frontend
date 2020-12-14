@@ -1,12 +1,12 @@
 html{
 	width:100vw;
-	background:
-linear-gradient(135deg, #FCFCFC 25%, transparent 25%) -50px 0,
-linear-gradient(225deg, #FCFCFC 25%, transparent 25%) -50px 0,
-linear-gradient(315deg, #FCFCFC 25%, transparent 25%),
-linear-gradient(45deg, #FCFCFC 25%, transparent 25%);
-background-size: 100px 100px;
-background-color: #FCD7BA;
+	background: #FCD7BA url(https://subtlepatterns.com/patterns/geometry2.png) repeat 0 0;;
+  animation: slide 20s linear infinite;
+}
+
+@keyframes slide {
+    from { background-position: 0 0; }
+    to { background-position: -400px 0; }
 }
 
 body {

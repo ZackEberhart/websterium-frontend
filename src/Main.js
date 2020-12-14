@@ -578,81 +578,172 @@ export default class Main extends React.Component {
                                 <button type="button" onClick={this.leaveRoom}>Leave room</button>
                             </div>
                             <br/>
-                            <div className = "nicebox" style={{padding:"10px"}}>
-                                <h3>
-                                    Image sources 
-                                    <span style={{fontWeight:"normal", fontSize:".8em"}}> (Select options or paste custom Imgur album IDs. Choices will only apply if *you* start the game.)</span>
-                                </h3>
-                                <div>
-                                    <label>
-                                        Dream source
-                                        <select onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[0] = val; return(state)})}}>
-                                            <option value="vdLZg">Creepy Art</option>
-                                            <option value="oGo8Vup">Cursed Images</option>
-                                            <option value="65X9xYV" selected>Mysterium</option>
-                                            <option value="Tf4Nc">Simpsons Gifs</option>
-                                            <option value="B9ukS">Surreal Art</option>
-                                            <option value="yGUC9">Weird Gifs</option>
-                                        </select>
-                                        <input type="text" value={this.state.image_sources[0]} 
-                                            onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[0] = val; return(state)})}}
-                                        />
-                                    </label>
-                                </div>
-                                <div>
-                                    <label>
-                                        Suspect source
-                                        <select onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[1] = val; return(state)})}}>
-                                            <option value="NEoYMSr">Cursed Toys</option>
-                                            <option value="WJ0gR">Jojo Stands</option>
-                                            <option value="7d3zQ">Meme Team c. 2010</option>
-                                            <option value="ageiv">Misc. Characters</option>
-                                            <option value="J85fFat" selected>Mysterium</option>
-                                            <option value="W6FgJ">Overwatch (?)</option>
-                                            <option value="hNU02">Pokemon (Realistic)</option>
-                                            <option value="GF5ScJI">Psychedelic Portraits</option>
-                                            <option value="NUIuAHY">Smash Bros.</option>
-                                            <option value="g0pzP">Snakes in Hats</option>
-                                            <option value="4W4YZ">TF2</option>
-                                            <option value="HpoSd">U.S. Presidents</option>
-                                        </select>
-                                        <input type="text" value={this.state.image_sources[1]} 
-                                            onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[1] = val; return(state)})}}
-                                        />
-                                    </label>
-                                </div>
-                                <div>
-                                    <label>
-                                        Place source
-                                        <select onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[2] = val; return(state)})}}>
-                                            <option value="VoCv2">Creepy Places 1</option>
-                                            <option value="MA55k">Creepy Places 2</option>
-                                            <option value="nZv1Czp">Environmental Storytelling</option>
-                                            <option value="9JUQg">Fighting Game Stages</option>
-                                            <option value="fMC79b8" selected>Mysterium</option>
-                                            <option value="jhxPqxh">Smash Bros. Stages</option>
-                                            <option value="RqkUd8g">Toilets</option>
-                                        </select>
-                                        <input type="text" value={this.state.image_sources[2]} 
-                                            onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[2] = val; return(state)})}}
-                                        />
-                                    </label>
-                                </div>
-                                <div>
-                                    <label>
-                                        Weapon source
-                                        <select onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[3] = val; return(state)})}}>
-                                            <option value="VyAWb">Accidents</option>
-                                            <option value="Cyqqv">Beans in Things</option>
-                                            <option value="mtzum">Bizarro World Items</option>
-                                            <option value="dzppwsZ">Household Spaceships</option>
-                                            <option value="Vpiu5It" selected>Mysterium</option>
-                                            <option value="RXFfv">Prison Inventions</option>
-                                        </select>
-                                        <input type="text" value={this.state.image_sources[3]} 
-                                            onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[3] = val; return(state)})}}
-                                        />
-                                    </label>
+                            <div className = "nicebox" style={{display:"flex", padding:"10px"}}>
+                                {false && <div style={{flex:1}}>
+                                    <h4 style={{margin:"0px 0px 10px 0px"}}>
+                                        Options 
+                                    </h4>
+                                    Presets
+                                    <select onChange={(evt) => {const val = evt.target.value; this.setState({num_rounds: val})}}>
+                                        {[5,6,7,8,9,10].map(x=>{return(
+                                            <option value={x}>{x}</option>
+                                            )
+                                        })}
+                                    </select>
+                                    <hr/>
+                                    <table>
+                                        <tr>
+                                            <td>
+                                                <select style={{width:"100%"}} onChange={(evt) => {const val = evt.target.value; this.setState({num_rounds: val})}}>
+                                                    {[5,6,7,8,9,10].map(x=>{return(
+                                                        <option value={x}>{x}</option>
+                                                        )
+                                                    })}
+                                                </select>
+                                            </td>
+                                            <td>
+                                                #Rounds
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            
+                                            <td>
+                                                <select style={{width:"100%"}} onChange={(evt) => {const val = evt.target.value; this.setState({num_rounds: val})}}>
+                                                    {[0, 1, 2, 3, "Unlimited"].map(x=>{return(
+                                                        <option value={x}>{x}</option>
+                                                        )
+                                                    })}
+                                                </select>
+                                            </td>
+                                            <td>
+                                                #Ravens
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            
+                                            <td>
+                                                <select style={{width:"100%"}} onChange={(evt) => {const val = evt.target.value; this.setState({num_rounds: val})}}>
+                                                    {[5,6,7,8,9,10].map(x=>{return(
+                                                        <option value={x}>{x}</option>
+                                                        )
+                                                    })}
+                                                </select>
+                                            </td>
+                                            <td>
+                                                #Dreams in ghost hand
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <select style={{width:"100%"}} onChange={(evt) => {const val = evt.target.value; this.setState({num_rounds: val})}}>
+                                                    {[1,2,3,4,5].map(x=>{return(
+                                                        <option value={x}>{x}</option>
+                                                        )
+                                                    })}
+                                                </select>
+                                            </td>
+                                            <td>
+                                                #Options in each stage
+                                                <br/>
+                                                (#Psychics + x)
+                                            </td>
+                                        </tr>
+                                    </table>      
+                                </div>}
+                                <div style={{flex:2}}>
+                                    <h4 style={{margin:"0px 0px 10px 0px"}}>
+                                        Image sources 
+                                        <span style={{fontWeight:"normal", fontSize:".8em"}}> (Select options or paste custom Imgur album IDs. Choices will only apply if *you* start the game.)</span>
+                                    </h4>
+                                    <table style={{width:"100%"}}>
+                                        <tr>
+                                            <td>
+                                                Dream source
+                                            </td>
+                                            <td>
+                                                <select onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[0] = val; return(state)})}}>
+                                                    <option value="vdLZg">Creepy Art</option>
+                                                    <option value="oGo8Vup">Cursed Images</option>
+                                                    <option value="65X9xYV" selected>Mysterium</option>
+                                                    <option value="Tf4Nc">Simpsons Gifs</option>
+                                                    <option value="B9ukS">Surreal Art</option>
+                                                    <option value="yGUC9">Weird Gifs</option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <input type="text" value={this.state.image_sources[0]} 
+                                                    onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[0] = val; return(state)})}}
+                                                />
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                Suspect source
+                                            </td>
+                                            <td>
+                                                <select onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[1] = val; return(state)})}}>
+                                                    <option value="NEoYMSr">Cursed Toys</option>
+                                                    <option value="WJ0gR">Jojo Stands</option>
+                                                    <option value="7d3zQ">Meme Team c. 2010</option>
+                                                    <option value="ageiv">Misc. Characters</option>
+                                                    <option value="J85fFat" selected>Mysterium</option>
+                                                    <option value="W6FgJ">Overwatch (?)</option>
+                                                    <option value="hNU02">Pokemon (Realistic)</option>
+                                                    <option value="GF5ScJI">Psychedelic Portraits</option>
+                                                    <option value="NUIuAHY">Smash Bros.</option>
+                                                    <option value="g0pzP">Snakes in Hats</option>
+                                                    <option value="4W4YZ">TF2</option>
+                                                    <option value="HpoSd">U.S. Presidents</option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <input type="text" value={this.state.image_sources[1]} 
+                                                    onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[1] = val; return(state)})}}
+                                                />
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                Place source
+                                            </td>
+                                            <td>
+                                                <select onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[2] = val; return(state)})}}>
+                                                    <option value="VoCv2">Creepy Places 1</option>
+                                                    <option value="MA55k">Creepy Places 2</option>
+                                                    <option value="nZv1Czp">Environmental Storytelling</option>
+                                                    <option value="9JUQg">Fighting Game Stages</option>
+                                                    <option value="fMC79b8" selected>Mysterium</option>
+                                                    <option value="jhxPqxh">Smash Bros. Stages</option>
+                                                    <option value="RqkUd8g">Toilets</option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <input type="text" value={this.state.image_sources[2]} 
+                                                    onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[2] = val; return(state)})}}
+                                                />
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                Weapon source
+                                            </td>
+                                            <td>
+                                                <select onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[3] = val; return(state)})}}>
+                                                    <option value="VyAWb">Accidents</option>
+                                                    <option value="Cyqqv">Beans in Things</option>
+                                                    <option value="mtzum">Bizarro World Items</option>
+                                                    <option value="dzppwsZ">Household Spaceships</option>
+                                                    <option value="Vpiu5It" selected>Mysterium</option>
+                                                    <option value="RXFfv">Prison Inventions</option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <input type="text" value={this.state.image_sources[3]} 
+                                                    onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[3] = val; return(state)})}}
+                                                />
+                                            </td>
+                                        </tr>
+                                    </table>
                                 </div>
                             </div>
                         </div>
