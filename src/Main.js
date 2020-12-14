@@ -5,9 +5,9 @@ import UIfx from 'uifx';
 import Magnifier from "react-magnifier";
 import { IconContext } from "react-icons";
 import MaterialTable from "material-table"
-import {Button, IconButton, TextField, Select} from '@material-ui/core';
-import {Refresh, ArrowBack, Send} from '@material-ui/icons';
-import { FaCrow, FaGhost, FaHome, FaEye, FaHammer, FaUserNinja} from "react-icons/fa";
+import {Button, IconButton, TextField, Select, InputAdornment} from '@material-ui/core';
+import {Refresh, ArrowBack, Send, AccountCircle} from '@material-ui/icons';
+import {FaCopy, FaCrow, FaGhost, FaHome, FaEye, FaHammer, FaUserNinja} from "react-icons/fa";
 import notificationSound from './assets/message.mp3';
 import correctSound from './assets/correct.wav';
 import guessSound from './assets/guess.wav';
@@ -59,7 +59,7 @@ export default class Main extends React.Component {
             client_id: null,
             host:false,
             username:"",
-            roomname:"default",
+            roomname:"",
             users:{},
 
             joined:false,
@@ -490,43 +490,61 @@ export default class Main extends React.Component {
                 return(
                     <div className="container" style={{justifyContent:"center",alignItems:"center"}}>
                         <h1>Websterium</h1>
-                        <div className="nicebox" style={{display:"flex", flexDirection:"column", alignItems:"center", padding:"20px", fontSize:"1.5em"}}>
-                            <div className = "row">
-                                <TextField
-                                    id="outlined-basic" label="Username" variant="outlined"
-                                    value={this.state.username}
-                                    style={{width:"50%", minWidth:"400px"}}
-                                    onChange={(evt)=> {const val = evt.target.value; this.setState({username:val})}}
-                                    onKeyPress={(evt)=>{
-                                        if(evt.key === 'Enter'){
-                                            if(this.state.username.length < 1){
-                                                alert("Please enter a username")
-                                            }else if(this.state.username.length > 25){
-                                                alert("Go for a user name that's <=25 characters long.")
-                                            }else{
-                                                this.send('join', {"username":this.state.username})
-                                            }
+                        <div className="nicebox" style={{display:"flex", flexDirection:"column", alignItems:"center", padding:"20px", fontSize:"1.5em", width:"40%", minWidth:"350px"}}>
+                            <TextField
+                                id="outlined-basic" label="Username" variant="outlined"
+                                value={this.state.username}
+                                onChange={(evt)=> {const val = evt.target.value; this.setState({username:val})}}
+                                style={{width:"100%"}}
+                                InputProps={{
+                                    startAdornment: (
+                                        <InputAdornment position="start">
+                                            <AccountCircle />
+                                        </InputAdornment>
+                                    ),
+                                }}
+                            />
+                            <TextField
+                                label="Room ID (optional)"
+                                value={this.state.roomname}
+                                style={{width:"100%"}}
+                                onChange={(evt)=> {const val = evt.target.value; this.setState({roomname:val})}}
+                            />
+                            <br/>
+                            <div className="row" style={{width:"100%"}}>
+                                <Button 
+                                    variant="contained"
+                                    style={{margin:"0px 5px 5px 0px", flex:1}}
+                                    onClick={() => {
+                                        if(this.state.username.length < 1){
+                                            alert("Please enter a username")
+                                        }else if(this.state.username.length > 25){
+                                            alert("Go for a user name that's <=25 characters long.")
+                                        }else{
+                                            this.setState({viewing_rooms:true, rooms_loading:true})
+                                            this.send('get_rooms', {});
                                         }
                                     }}
-                                />
+                                >
+                                    Browse rooms
+                                </Button>
+                                <Button 
+                                    variant="contained"
+                                    style={{margin:"0px 0px 5px 5px", flex:1}}
+                                    disabled = {this.state.roomname.length == 0}
+                                    onClick={() => {
+                                        if(this.state.username.length < 1){
+                                            alert("Please enter a username")
+                                        }else if(this.state.username.length > 25){
+                                            alert("Go for a user name that's <=25 characters long.")
+                                        }else{
+                                            this.send('join', {"username":this.state.username, "roomname":this.state.roomname})
+                                        }
+                                    }}
+                                >
+                                    Join room
+                                </Button>
                             </div>
-                            <br/>
-                            <Button 
-                                variant="contained"
-                                style={{margin:"5px", width:"100%"}}
-                                onClick={() => {
-                                    if(this.state.username.length < 1){
-                                        alert("Please enter a username")
-                                    }else if(this.state.username.length > 25){
-                                        alert("Go for a user name that's <=25 characters long.")
-                                    }else{
-                                        this.setState({viewing_rooms:true, rooms_loading:true})
-                                        setTimeout(() => { this.send('get_rooms', {}); }, 200);
-                                    }
-                                }}
-                            >
-                                Join room
-                            </Button>
                             <Button
                                 variant="contained"
                                 style={{margin:"5px", width:"100%"}}
@@ -536,7 +554,7 @@ export default class Main extends React.Component {
                                     }else if(this.state.username.length > 25){
                                         alert("Go for a user name that's <=25 characters long.")
                                     }else{
-                                        this.send('create', {"username":this.state.username})
+                                        this.send('create', {"username":this.state.username, "roomname":this.state.roomname})
                                     }
                                 }}
                             >
@@ -550,17 +568,17 @@ export default class Main extends React.Component {
                     <div className="container" style={{ height:"100%", justifyContent:"center",alignItems:"center"}}>
                         <div style={{width:"70%", minWidth:"300px", overflow: 'auto', textAlign:"center"}}>
                             <h2 style={{margin:"0px"}}>Websterium</h2>
-                            <row style={{alignItems:"center",width:"100%", display:"flex", justifyContent:'space-between'}}>
+                            <div style={{alignItems:"center",width:"100%", display:"flex", justifyContent:'space-between'}}>
                                 <IconButton type="button" onClick={()=>this.setState({viewing_rooms:false})}>
                                     <ArrowBack/>
                                 </IconButton>
                                 <IconButton type="button" onClick={()=>{
                                     this.setState({rooms_loading:true})
-                                    setTimeout(() => { this.send('get_rooms', {}); }, 200);
+                                    this.send('get_rooms', {})
                                 }}>
                                     <Refresh/>
                                 </IconButton>
-                            </row>
+                            </div>
                             <MaterialTable 
                                 title="Rooms" 
                                 columns={this.columns} 
@@ -628,7 +646,7 @@ export default class Main extends React.Component {
                 <div className="container">
                     <div className="row" style={{height:"100%", width:"100%"}}>
                         <div style={{display:"flex", flexDirection:"column", flex:1, height:'100%', justifyContent:"center", alignItems:"center"}}>
-                            <h2>Room: {this.state.roomname}</h2>
+                            <h2>Room: {this.state.roomname} </h2>
                             <div className = "nicebox" style={{padding:'0px', display:'flex', width:"70%", minWidth:"300px", overflow: 'auto', flex:1}}>
                                 {users}
                             </div>
