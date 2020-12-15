@@ -515,6 +515,7 @@ export default class Main extends React.Component {
                                 <Button 
                                     variant="contained"
                                     style={{margin:"0px 5px 5px 0px", flex:1}}
+                                    disabled = {this.state.username.length == 0}
                                     onClick={() => {
                                         if(this.state.username.length < 1){
                                             alert("Please enter a username")
@@ -531,7 +532,7 @@ export default class Main extends React.Component {
                                 <Button 
                                     variant="contained"
                                     style={{margin:"0px 0px 5px 5px", flex:1}}
-                                    disabled = {this.state.roomname.length == 0}
+                                    disabled = {this.state.roomname.length == 0 || this.state.username.length == 0}
                                     onClick={() => {
                                         if(this.state.username.length < 1){
                                             alert("Please enter a username")
@@ -548,6 +549,7 @@ export default class Main extends React.Component {
                             <Button
                                 variant="contained"
                                 style={{margin:"5px", width:"100%"}}
+                                disabled = {this.state.username.length == 0}
                                 onClick={() => {
                                     if(this.state.username.length < 1){
                                         alert("Please enter a username")
