@@ -5,9 +5,9 @@ import UIfx from 'uifx';
 import Magnifier from "react-magnifier";
 import { IconContext } from "react-icons";
 import MaterialTable from "material-table"
-import {Button, IconButton, TextField, Select, InputAdornment} from '@material-ui/core';
+import {Button, IconButton, TextField, Select, MenuItem, InputAdornment, FormControl, InputLabel} from '@material-ui/core';
 import {Refresh, ArrowBack, Send, AccountCircle} from '@material-ui/icons';
-import {FaCopy, FaCrow, FaGhost, FaHome, FaEye, FaHammer, FaUserNinja} from "react-icons/fa";
+import {FaCopy, FaCrow, FaGhost, FaHome, FaEye, FaHammer, FaUserNinja, FaPlayCircle} from "react-icons/fa";
 import notificationSound from './assets/message.mp3';
 import correctSound from './assets/correct.wav';
 import guessSound from './assets/guess.wav';
@@ -581,6 +581,7 @@ export default class Main extends React.Component {
                                     <Refresh/>
                                 </IconButton>
                             </div>
+                            <br/>
                             <MaterialTable 
                                 title="Rooms" 
                                 columns={this.columns} 
@@ -646,14 +647,27 @@ export default class Main extends React.Component {
             </div>
             return(
                 <div className="container">
-                    <div className="row" style={{height:"100%", width:"100%"}}>
-                        <div style={{display:"flex", flexDirection:"column", flex:1, height:'100%', justifyContent:"center", alignItems:"center"}}>
-                            <h2>Room: {this.state.roomname} </h2>
-                            <div className = "nicebox" style={{padding:'0px', display:'flex', width:"70%", minWidth:"300px", overflow: 'auto', flex:1}}>
-                                {users}
+                    <div className="row" style={{height:"100%", justifyContent:"space-between", width:"100%"}}>
+                        <div style={{display:"flex", padding:"5px", boxSizing:'border-box', flexDirection:"column", flex:1, height:'100%', width:"83vw", justifyContent:"center", alignItems:"center"}}>
+                            <div className="hand" style={{justifyContent:"space-between", alignItems:"center", width:'80%', "textAlign":'center'}}>
+                                <div style={{flex:1, textAlign:"left"}}>
+                                    <IconButton onClick={this.leaveRoom}>
+                                        <IconContext.Provider value={{ size:"2em", color: "#791E94", className: "global-class-name" }}>
+                                            <div>
+                                                <ArrowBack/>
+                                            </div>
+                                        </IconContext.Provider>
+                                    </IconButton>
+                                </div>
+                                <h2 style={{margin:"0px"}}>Room: {this.state.roomname} </h2>
+                                <div style={{flex:1}}/>
                             </div>
                             <br/>
+                            <div className = "nicebox" style={{padding:'0px', display:'flex', width:"80%", minWidth:"300px", overflow: 'auto', flex:1}}>
+                                {users}
+                            </div>
                             <div className="row" style={{padding:"10px 0px"}}>
+                                <h3 style={{padding:"0px 5px"}}>Select role: </h3>
                                 <IconButton onClick={() => this.send('setRole', 'ghost')}>
                                     <IconContext.Provider value={{ size:"2em", color: "#791E94", className: "global-class-name" }}>
                                         <div>
@@ -661,7 +675,6 @@ export default class Main extends React.Component {
                                         </div>
                                     </IconContext.Provider>
                                 </IconButton>
-                                <h3 style={{padding:"0px 5px"}}>Select role</h3>
                                 <IconButton  onClick={() => this.send('setRole', 'psychic')}>
                                     <IconContext.Provider value={{ size:"2em", color: "#41D3BD", className: "global-class-name" }}>
                                         <div>
@@ -670,178 +683,126 @@ export default class Main extends React.Component {
                                     </IconContext.Provider>
                                 </IconButton>
                             </div>
-                            <div className="row">
-                            <Button variant="contained" onClick={this.leaveRoom}>Leave room</Button>
-                            {this.state.host && <Button variant="contained" color="primary" onClick={this.sendStart }>Start game</Button>}
-                            </div>
-                            <br/>
                             {this.state.host && 
-                                <div className = "nicebox" style={{display:"flex", padding:"10px"}}>
-                                    {false && <div style={{flex:1}}>
-                                        <h4 style={{margin:"0px 0px 10px 0px"}}>
-                                            Options 
-                                        </h4>
-                                        Presets
-                                        <select onChange={(evt) => {const val = evt.target.value; this.setState({num_rounds: val})}}>
-                                            {[5,6,7,8,9,10].map(x=>{return(
-                                                <option value={x}>{x}</option>
-                                                )
-                                            })}
-                                        </select>
-                                        <hr/>
-                                        <table>
-                                            <tr>
-                                                <td>
-                                                    <select style={{width:"100%"}} onChange={(evt) => {const val = evt.target.value; this.setState({num_rounds: val})}}>
-                                                        {[5,6,7,8,9,10].map(x=>{return(
-                                                            <option value={x}>{x}</option>
-                                                            )
-                                                        })}
-                                                    </select>
-                                                </td>
-                                                <td>
-                                                    #Rounds
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                
-                                                <td>
-                                                    <select style={{width:"100%"}} onChange={(evt) => {const val = evt.target.value; this.setState({num_rounds: val})}}>
-                                                        {[0, 1, 2, 3, "Unlimited"].map(x=>{return(
-                                                            <option value={x}>{x}</option>
-                                                            )
-                                                        })}
-                                                    </select>
-                                                </td>
-                                                <td>
-                                                    #Ravens
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                
-                                                <td>
-                                                    <select style={{width:"100%"}} onChange={(evt) => {const val = evt.target.value; this.setState({num_rounds: val})}}>
-                                                        {[5,6,7,8,9,10].map(x=>{return(
-                                                            <option value={x}>{x}</option>
-                                                            )
-                                                        })}
-                                                    </select>
-                                                </td>
-                                                <td>
-                                                    #Visions in ghost hand
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td>
-                                                    <select style={{width:"100%"}} onChange={(evt) => {const val = evt.target.value; this.setState({num_rounds: val})}}>
-                                                        {[1,2,3,4,5].map(x=>{return(
-                                                            <option value={x}>{x}</option>
-                                                            )
-                                                        })}
-                                                    </select>
-                                                </td>
-                                                <td>
-                                                    #Options in each stage
-                                                    <br/>
-                                                    (#Psychics + x)
-                                                </td>
-                                            </tr>
-                                        </table>      
-                                    </div>}
-                                    <div style={{flex:2}}>
-                                        <h4 style={{margin:"0px 0px 10px 0px"}}>
-                                            Image sources 
-                                            <span style={{fontWeight:"normal", fontSize:".8em"}}> (Select options or paste custom Imgur album IDs. Choices will only apply if *you* start the game.)</span>
-                                        </h4>
-                                        <table style={{width:"100%"}}>
-                                            <tr>
-                                                <td>
-                                                    Dream source
-                                                </td>
-                                                <td>
-                                                    <Select onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[0] = val; return(state)})}}>
-                                                        <option value="vdLZg">Creepy Art</option>
-                                                        <option value="oGo8Vup">Cursed Images</option>
-                                                        <option value="65X9xYV" selected>Mysterium</option>
-                                                        <option value="Tf4Nc">Simpsons Gifs</option>
-                                                        <option value="B9ukS">Surreal Art</option>
-                                                        <option value="yGUC9">Weird Gifs</option>
-                                                    </Select>
-                                                </td>
-                                                <td>
-                                                    <input type="text" value={this.state.image_sources[0]} 
-                                                        onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[0] = val; return(state)})}}
-                                                    />
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td>
-                                                    Suspect source
-                                                </td>
-                                                <td>
-                                                    <Select onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[1] = val; return(state)})}}>
-                                                        <option value="NEoYMSr">Cursed Toys</option>
-                                                        <option value="WJ0gR">Jojo Stands</option>
-                                                        <option value="7d3zQ">Meme Team c. 2010</option>
-                                                        <option value="ageiv">Misc. Characters</option>
-                                                        <option value="J85fFat" selected>Mysterium</option>
-                                                        <option value="W6FgJ">Overwatch (?)</option>
-                                                        <option value="hNU02">Pokemon (Realistic)</option>
-                                                        <option value="GF5ScJI">Psychedelic Portraits</option>
-                                                        <option value="aZClIlk">Smash Bros.</option>
-                                                        <option value="g0pzP">Snakes in Hats</option>
-                                                        <option value="4W4YZ">TF2</option>
-                                                        <option value="HpoSd">U.S. Presidents</option>
-                                                    </Select>
-                                                </td>
-                                                <td>
-                                                    <input type="text" value={this.state.image_sources[1]} 
-                                                        onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[1] = val; return(state)})}}
-                                                    />
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td>
-                                                    Place source
-                                                </td>
-                                                <td>
-                                                    <Select onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[2] = val; return(state)})}}>
-                                                        <option value="VoCv2">Creepy Places 1</option>
-                                                        <option value="MA55k">Creepy Places 2</option>
-                                                        <option value="nZv1Czp">Environmental Storytelling</option>
-                                                        <option value="9JUQg">Fighting Game Stages</option>
-                                                        <option value="fMC79b8" selected>Mysterium</option>
-                                                        <option value="jhxPqxh">Smash Bros. Stages</option>
-                                                        <option value="RqkUd8g">Toilets</option>
-                                                    </Select>
-                                                </td>
-                                                <td>
-                                                    <input type="text" value={this.state.image_sources[2]} 
-                                                        onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[2] = val; return(state)})}}
-                                                    />
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td>
-                                                    Weapon source
-                                                </td>
-                                                <td>
-                                                    <Select onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[3] = val; return(state)})}}>
-                                                        <option value="VyAWb">Accidents</option>
-                                                        <option value="Cyqqv">Beans in Things</option>
-                                                        <option value="mtzum">Bizarro World Items</option>
-                                                        <option value="dzppwsZ">Household Spaceships</option>
-                                                        <option value="Vpiu5It" selected>Mysterium</option>
-                                                        <option value="RXFfv">Prison Inventions</option>
-                                                    </Select>
-                                                </td>
-                                                <td>
-                                                    <input type="text" value={this.state.image_sources[3]} 
-                                                        onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[3] = val; return(state)})}}
-                                                    />
-                                                </td>
-                                            </tr>
-                                        </table>
+                                <div className="row" style={{display:"flex", width:"80%", maxHeight:"30%",}}>
+                                    <div className = "nicebox" style={{flex:"2", padding:"10px", width:"100%", overflow:"scroll", marginRight:"5px"}}>
+                                        <div style={{}}>
+                                            <h4 style={{margin:"0px 0px 10px 0px"}}>
+                                                Image sources 
+                                                <span style={{fontWeight:"normal", fontSize:".8em"}}> (Select options or paste custom Imgur album IDs. Choices will only apply if *you* start the game.)</span>
+                                            </h4>
+                                            <table style={{width:"100%"}}>
+                                                <tr>
+                                                    <td>
+                                                        <FormControl style={{minWidth: '250px'}}>
+                                                            <InputLabel>Dream source</InputLabel>
+                                                            <Select 
+                                                                autoWidth={true}
+                                                                value={this.state.image_sources[0]}
+                                                                onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[0] = val; return(state)})}}
+                                                            >
+                                                                <MenuItem value="vdLZg">Creepy Art</MenuItem>
+                                                                <MenuItem value="oGo8Vup">Cursed Images</MenuItem>
+                                                                <MenuItem value="65X9xYV" selected>Mysterium</MenuItem>
+                                                                <MenuItem value="Tf4Nc">Simpsons Gifs</MenuItem>
+                                                                <MenuItem value="B9ukS">Surreal Art</MenuItem>
+                                                                <MenuItem value="yGUC9">Weird Gifs</MenuItem>
+                                                            </Select>
+                                                        </FormControl>
+                                                    </td>
+                                                    <td>
+                                                        <input type="text" value={this.state.image_sources[0]} 
+                                                            onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[0] = val; return(state)})}}
+                                                        />
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <FormControl style={{minWidth: '250px'}}>
+                                                        <InputLabel>Suspect source</InputLabel>
+                                                        <Select 
+                                                            autoWidth
+                                                            value={this.state.image_sources[1]}
+                                                            onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[1] = val; return(state)})}}
+                                                        >
+                                                            <MenuItem value="NEoYMSr">Cursed Toys</MenuItem>
+                                                            <MenuItem value="WJ0gR">Jojo Stands</MenuItem>
+                                                            <MenuItem value="7d3zQ">Meme Team c. 2010</MenuItem>
+                                                            <MenuItem value="ageiv">Misc. Characters</MenuItem>
+                                                            <MenuItem value="J85fFat" selected>Mysterium</MenuItem>
+                                                            <MenuItem value="W6FgJ">Overwatch (?)</MenuItem>
+                                                            <MenuItem value="hNU02">Pokemon (Realistic)</MenuItem>
+                                                            <MenuItem value="GF5ScJI">Psychedelic Portraits</MenuItem>
+                                                            <MenuItem value="aZClIlk">Smash Bros.</MenuItem>
+                                                            <MenuItem value="g0pzP">Snakes in Hats</MenuItem>
+                                                            <MenuItem value="4W4YZ">TF2</MenuItem>
+                                                            <MenuItem value="HpoSd">U.S. Presidents</MenuItem>
+                                                        </Select>
+                                                        </FormControl>
+                                                    </td>
+                                                    <td>
+                                                        <input type="text" value={this.state.image_sources[1]} 
+                                                            onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[1] = val; return(state)})}}
+                                                        />
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <FormControl style={{minWidth: '250px'}}>
+                                                            <InputLabel>Location source</InputLabel>
+                                                            <Select 
+                                                                autoWidth
+                                                                value={this.state.image_sources[2]}
+                                                                onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[2] = val; return(state)})}}
+                                                            >
+                                                                <MenuItem value="VoCv2">Creepy Places 1</MenuItem>
+                                                                <MenuItem value="MA55k">Creepy Places 2</MenuItem>
+                                                                <MenuItem value="nZv1Czp">Environmental Storytelling</MenuItem>
+                                                                <MenuItem value="9JUQg">Fighting Game Stages</MenuItem>
+                                                                <MenuItem value="fMC79b8" selected>Mysterium</MenuItem>
+                                                                <MenuItem value="jhxPqxh">Smash Bros. Stages</MenuItem>
+                                                                <MenuItem value="RqkUd8g">Toilets</MenuItem>
+                                                            </Select>
+                                                        </FormControl>
+                                                    </td>
+                                                    <td>
+                                                        <input type="text" value={this.state.image_sources[2]} 
+                                                            onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[2] = val; return(state)})}}
+                                                        />
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <FormControl style={{minWidth: '250px'}}>
+                                                            <InputLabel>Weapon source</InputLabel>
+                                                            <Select 
+                                                                autoWidth
+                                                                value={this.state.image_sources[3]}
+                                                                onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[3] = val; return(state)})}}
+                                                            >
+
+                                                                <MenuItem value="VyAWb">Accidents</MenuItem>
+                                                                <MenuItem value="Cyqqv">Beans in Things</MenuItem>
+                                                                <MenuItem value="mtzum">Bizarro World Items</MenuItem>
+                                                                <MenuItem value="dzppwsZ">Household Spaceships</MenuItem>
+                                                                <MenuItem value="Vpiu5It" selected>Mysterium</MenuItem>
+                                                                <MenuItem value="RXFfv">Prison Inventions</MenuItem>
+                                                            </Select>
+                                                        </FormControl>
+                                                    </td>
+                                                    <td>
+                                                        <input type="text" value={this.state.image_sources[3]} 
+                                                            onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[3] = val; return(state)})}}
+                                                        />
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <div style={{flex:1, display:"flex", alignItems:"center", justifyContent:"center", marginLeft:"5px"}}>
+                                        <IconButton style={{width:"70%", height:"70%",}} variant="contained" color="primary" onClick={this.sendStart }>
+                                            <FaPlayCircle style={{color:"#058ED9"}} size="sm"/>
+                                        </IconButton>
                                     </div>
                                 </div>
                             }
