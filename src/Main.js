@@ -74,10 +74,11 @@ export default class Main extends React.Component {
             roomname:"",
             users:{},
 
+            loading:false,
             joined:false,
             started:false,
             game_over:false,
-            loading:false,
+            won:false,
 
             rooms:[],
             viewing_rooms: false,
@@ -326,7 +327,7 @@ export default class Main extends React.Component {
                 }
             }
             if(message["status"] == "won"){
-                this.setState({'game_over': true})
+                this.setState({'game_over': true, "won":true})
                 var r = Math.floor(Math.random() * 5);
                 switch(r) {
                     case 0:
@@ -347,7 +348,7 @@ export default class Main extends React.Component {
                 }
                 this.systemMessage("You win!")
             }else if(message["status"] == "lost"){ 
-                this.setState({'game_over': true})
+                this.setState({'game_over': true, "won":false})
                 var r = Math.floor(Math.random() * 4);
                 switch(r) {
                     case 0:
@@ -1076,7 +1077,7 @@ export default class Main extends React.Component {
 
     mobileMainDisplay = () =>{
         return(
-            <div className="nicebox" style ={{height:"65%", width:"100%", overflow:"hidden"}}>
+            <div className="nicebox" style ={{height:"70%", width:"100%", overflow:"hidden"}}>
                 {this.state.mobile_images_selected === "cards" && 
                         this.mobileCardDisplay()
                 }
@@ -1094,7 +1095,7 @@ export default class Main extends React.Component {
         return(
             <Swiper
                 pagination={{ clickable: true }}
-                zoom
+                zoom={{zoomedSlideClass:"swiper-slide-zoomed-a"}}
                 style={{ width: '100%', height: '100%', padding:"5px", zIndex:0}}
                 spaceBetween={10}
                 slidesPerView={1.5}
@@ -1156,7 +1157,7 @@ export default class Main extends React.Component {
         return(
             <Swiper
                 pagination={{ clickable: true }}
-                zoom
+                zoom={{zoomedSlideClass:"swiper-slide-zoomed-a"}}
                 spaceBetween={10}
                 style={{ width: '100%', height: '100%', padding:"5px", zIndex:0 }}
                 slidesPerView={1.5}
@@ -1201,7 +1202,7 @@ export default class Main extends React.Component {
             return(
                 <Swiper
                     pagination={{ clickable: true }}
-                    zoom
+                    zoom={{zoomedSlideClass:"swiper-slide-zoomed-a"}}
                     spaceBetween={10}
                     style={{ width: '100%', height: '100%', padding:"5px", zIndex:0 }}
                     slidesPerView={1.5}
@@ -1422,13 +1423,20 @@ export default class Main extends React.Component {
         mobileGhostAllPsychics = () =>{
             const icon_color = this.state.psychics[this.state.selected_psychic].current_guess !== null ? "rgba(65, 211, 189, 1)" : (this.state.ghost['psychics_clued'].includes(this.state.selected_psychic)? "rgba(186, 90, 49,1)" : "gray")
             return(
-                <div className = "hand" style={{justifyContent:"space-between", height:'100%', overflow:'auto', "textAlign":'center'}}>
+                <div className = "hand" style={{alignItems:"center", justifyContent:"space-between", height:'100%', overflow:'auto', "textAlign":'center'}}>
                     <div style={{flex:1, textAlign:"left"}}>
-                        <div>
-                            <h3 style={{margin:"0px"}}>
-                                <FaCrow style={{position:"relative", top:"5px"}}/>x{this.state.ravens}
-                            </h3>
-                        </div>
+                        {this.state.game_over?
+                            (this.state.won?
+                                <h3 style={{margin:"0px"}}>You win!</h3>
+                            :
+                                <h3 style={{margin:"0px"}}>You lose!</h3>
+                            )
+                        :
+                            <h3 style={{margin:"0px"}}>Round {this.state.current_round}/7</h3>
+                        }
+                        <h3 style={{margin:"0px"}}>
+                            <FaCrow style={{position:"relative", top:"5px"}}/>x{this.state.ravens}
+                        </h3>
                     </div>
                     <div style={{textAlign:"center"}}>
                         <IconContext.Provider value={{ padding:"0px",size:"2em", color: icon_color, className: "global-class-name" }}>
@@ -1467,14 +1475,15 @@ export default class Main extends React.Component {
                     </div>
 
                     <div style={{flex:1, textAlign:'right'}}>
-                        {this.state.game_over?
-                            <h2 style={{margin:"0px"}}>Game over!</h2>
-                        :
-                            <div>
-                                <h4 style={{margin:"0px"}}>Round</h4>
-                                <h3 style={{margin:"0px"}}>{this.state.current_round}/7</h3>
-                            </div>
-                        }
+                        <IconButton onClick={this.toggleChat}>
+                            <IconContext.Provider value={{ size:"1em", color: "#058ED9", className: "global-class-name" }}>
+                                {this.state.mobile_chat_visible?
+                                <FaComment/>
+                                :
+                                <FaRegComment/>
+                                }
+                            </IconContext.Provider>
+                        </IconButton>
                     </div>
                 </div>
             )
