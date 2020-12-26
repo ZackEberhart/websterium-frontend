@@ -1,13 +1,21 @@
 import './Main.css';
+import 'swiper/swiper.scss';
+import 'swiper/components/zoom/zoom.min.css';
+import 'swiper/components/effect-coverflow/effect-coverflow.min.css'
+import 'swiper/components/pagination/pagination.scss';
 
 import React from 'react';
 import UIfx from 'uifx'; 
-import Magnifier from "react-magnifier";
+import SlidingPane from "react-sliding-pane";
+import SwiperCore, { Pagination, Zoom} from 'swiper';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import "react-sliding-pane/dist/react-sliding-pane.css";
+import { useMediaQuery } from 'react-responsive'
 import { IconContext } from "react-icons";
 import MaterialTable from "material-table"
 import {Button, IconButton, TextField, Select, MenuItem, InputAdornment, FormControl, InputLabel} from '@material-ui/core';
 import {Refresh, ArrowBack, Send, AccountCircle} from '@material-ui/icons';
-import {FaCopy, FaCrow, FaGhost, FaHome, FaEye, FaHammer, FaUserNinja, FaPlayCircle} from "react-icons/fa";
+import {FaBrain, FaCopy, FaRegComment, FaComment, FaCrow, FaGhost, FaHome, FaEye, FaHammer, FaUserNinja, FaPlayCircle} from "react-icons/fa";
 import notificationSound from './assets/message.mp3';
 import correctSound from './assets/correct.wav';
 import guessSound from './assets/guess.wav';
@@ -25,6 +33,8 @@ import defeat3Sound from './assets/defeat3.mp3';
 import defeat4Sound from './assets/defeat4.mp3';
 import { config } from './Config.js'
 
+SwiperCore.use([Pagination, Zoom]);
+
 const notification = new UIfx(notificationSound, {volume: 0.3});
 const correct = new UIfx(correctSound, {volume: 1.0});
 const guess = new UIfx(guessSound, {volume: 1.0});
@@ -41,20 +51,22 @@ const defeat2 = new UIfx(defeat2Sound, {volume: 0.4,});
 const defeat3 = new UIfx(defeat3Sound, {volume: 0.4,});
 const defeat4 = new UIfx(defeat4Sound, {volume: 0.4,});
 
+
+const Mobile = ({ children }) => {
+  const isMobile = useMediaQuery({ maxWidth: 767 })
+  return isMobile ? children : null
+}
+const Default = ({ children }) => {
+  const isNotMobile = useMediaQuery({ minWidth: 768 })
+  return isNotMobile ? children : null
+}
+
 export default class Main extends React.Component {
 
     constructor(props) {
         super(props);
 
         this.state = {
-            chatlog:[],
-            chatOpen:false,
-            chatMsg:"",
-
-            rooms:[],
-            viewing_rooms: false,
-            rooms_loading:false,
-
             ws: null,
             client_id: null,
             host:false,
@@ -67,7 +79,19 @@ export default class Main extends React.Component {
             game_over:false,
             loading:false,
 
-            image_sources:["65X9xYV", "J85fFat", "fMC79b8", "mtzum"],
+            rooms:[],
+            viewing_rooms: false,
+            rooms_loading:false,
+
+            chatlog:[],
+            chatOpen:false,
+            chatMsg:"",
+
+            mobile_options_visible:false,
+            mobile_chat_visible:false,
+            mobile_images_selected:"cards",
+
+            image_sources:["65X9xYV", "J85fFat", "fMC79b8", "Vpiu5It"],
             num_ravens:3,
             num_rounds:7,
             num_extra_cards:3,
@@ -475,21 +499,41 @@ export default class Main extends React.Component {
         return psychics
     }
 
+    toggleChat = () =>{
+        this.setState(state=>{
+            return {mobile_chat_visible: !state.mobile_chat_visible}
+        })
+    }
+
+    toggleOptions = () =>{
+        this.setState(state=>{
+            return {mobile_options_visible: !state.mobile_options_visible}
+        })
+    }
+
 //////////////////////////////////////////////////////////////////////////////////////////
     ///////////////////////////////Components/////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////Main rooms
 
+    
+
     columns = [{title:"Room Name", "field":"roomname"}, 
                {title:"Game Status", "field":"status"},
                {title:"#Players", "field":"players"}]
+    
     anteroom = () => {
         if(!this.state.joined){
             if (!this.state.viewing_rooms){
                 return(
                     <div className="container" style={{justifyContent:"center",alignItems:"center"}}>
-                        <h1>Websterium</h1>
+                        <Default>
+                            <h1>Websterium</h1>
+                        </Default>
+                        <Mobile> 
+                            <h2>Websterium</h2>
+                        </Mobile>
                         <div className="nicebox" style={{display:"flex", flexDirection:"column", alignItems:"center", padding:"20px", fontSize:"1.5em", width:"40%", minWidth:"350px"}}>
                             <TextField
                                 id="outlined-basic" label="Username" variant="outlined"
@@ -649,19 +693,46 @@ export default class Main extends React.Component {
                 <div className="container">
                     <div className="row" style={{height:"100%", justifyContent:"space-between", width:"100%"}}>
                         <div style={{display:"flex", padding:"5px", boxSizing:'border-box', flexDirection:"column", flex:1, height:'100%', width:"83vw", justifyContent:"center", alignItems:"center"}}>
-                            <div className="hand" style={{justifyContent:"space-between", alignItems:"center", width:'80%', "textAlign":'center'}}>
-                                <div style={{flex:1, textAlign:"left"}}>
-                                    <IconButton onClick={this.leaveRoom}>
-                                        <IconContext.Provider value={{ size:"2em", color: "#791E94", className: "global-class-name" }}>
-                                            <div>
-                                                <ArrowBack/>
-                                            </div>
-                                        </IconContext.Provider>
-                                    </IconButton>
+                            <Default>
+                                <div className="hand" style={{justifyContent:"space-between", alignItems:"center", width:'80%', "textAlign":'center'}}>
+                                    <div style={{flex:1, textAlign:"left"}}>
+                                        <IconButton onClick={this.leaveRoom}>
+                                            <IconContext.Provider value={{ size:"2em", color: "#791E94", className: "global-class-name" }}>
+                                                <div>
+                                                    <ArrowBack/>
+                                                </div>
+                                            </IconContext.Provider>
+                                        </IconButton>
+                                    </div>
+                                    <h2 style={{margin:"0px"}}>Room: {this.state.roomname} </h2>
+                                    <div style={{flex:1}}/>
                                 </div>
-                                <h2 style={{margin:"0px"}}>Room: {this.state.roomname} </h2>
-                                <div style={{flex:1}}/>
-                            </div>
+                            </Default>
+                            <Mobile>
+                                <div className="hand" style={{justifyContent:"space-between", alignItems:"center", width:'80%', "textAlign":'center'}}>
+                                    <div style={{flex:1, textAlign:"left"}}>
+                                        <IconButton onClick={this.leaveRoom}>
+                                            <IconContext.Provider value={{ size:"2em", color: "#791E94", className: "global-class-name" }}>
+                                                <div>
+                                                    <ArrowBack/>
+                                                </div>
+                                            </IconContext.Provider>
+                                        </IconButton>
+                                    </div>
+                                <h3 style={{margin:"0px"}}>{this.state.roomname} </h3>
+                                    <div style={{flex:1, textAlign:"right"}}>
+                                        <IconButton onClick={this.toggleChat}>
+                                            <IconContext.Provider value={{ size:"2em", color: "#058ED9", className: "global-class-name" }}>
+                                                {this.state.mobile_chat_visible?
+                                                <FaComment/>
+                                                :
+                                                <FaRegComment/>
+                                                }
+                                            </IconContext.Provider>
+                                        </IconButton>
+                                    </div>
+                                </div>
+                            </Mobile>
                             <br/>
                             <div className = "nicebox" style={{padding:'0px', display:'flex', width:"80%", minWidth:"300px", overflow: 'auto', flex:1}}>
                                 {users}
@@ -683,135 +754,65 @@ export default class Main extends React.Component {
                                     </IconContext.Provider>
                                 </IconButton>
                             </div>
-                            {this.state.host && 
-                                <div className="row" style={{display:"flex", width:"80%", maxHeight:"30%",}}>
-                                    <div className = "nicebox" style={{flex:"2", padding:"10px", width:"100%", overflow:"scroll", marginRight:"5px"}}>
-                                        <div style={{}}>
-                                            <h4 style={{margin:"0px 0px 10px 0px"}}>
-                                                Image sources 
-                                                <span style={{fontWeight:"normal", fontSize:".8em"}}> (Select options or paste custom Imgur album IDs. Choices will only apply if *you* start the game.)</span>
-                                            </h4>
-                                            <table style={{width:"100%"}}>
-                                                <tr>
-                                                    <td>
-                                                        <FormControl style={{minWidth: '250px'}}>
-                                                            <InputLabel>Dream source</InputLabel>
-                                                            <Select 
-                                                                autoWidth={true}
-                                                                value={this.state.image_sources[0]}
-                                                                onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[0] = val; return(state)})}}
-                                                            >
-                                                                <MenuItem value="vdLZg">Creepy Art</MenuItem>
-                                                                <MenuItem value="oGo8Vup">Cursed Images</MenuItem>
-                                                                <MenuItem value="65X9xYV" selected>Mysterium</MenuItem>
-                                                                <MenuItem value="Tf4Nc">Simpsons Gifs</MenuItem>
-                                                                <MenuItem value="B9ukS">Surreal Art</MenuItem>
-                                                                <MenuItem value="yGUC9">Weird Gifs</MenuItem>
-                                                            </Select>
-                                                        </FormControl>
-                                                    </td>
-                                                    <td>
-                                                        <input type="text" value={this.state.image_sources[0]} 
-                                                            onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[0] = val; return(state)})}}
-                                                        />
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td>
-                                                        <FormControl style={{minWidth: '250px'}}>
-                                                        <InputLabel>Suspect source</InputLabel>
-                                                        <Select 
-                                                            autoWidth
-                                                            value={this.state.image_sources[1]}
-                                                            onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[1] = val; return(state)})}}
-                                                        >
-                                                            <MenuItem value="NEoYMSr">Cursed Toys</MenuItem>
-                                                            <MenuItem value="WJ0gR">Jojo Stands</MenuItem>
-                                                            <MenuItem value="7d3zQ">Meme Team c. 2010</MenuItem>
-                                                            <MenuItem value="ageiv">Misc. Characters</MenuItem>
-                                                            <MenuItem value="J85fFat" selected>Mysterium</MenuItem>
-                                                            <MenuItem value="W6FgJ">Overwatch (?)</MenuItem>
-                                                            <MenuItem value="hNU02">Pokemon (Realistic)</MenuItem>
-                                                            <MenuItem value="GF5ScJI">Psychedelic Portraits</MenuItem>
-                                                            <MenuItem value="aZClIlk">Smash Bros.</MenuItem>
-                                                            <MenuItem value="g0pzP">Snakes in Hats</MenuItem>
-                                                            <MenuItem value="4W4YZ">TF2</MenuItem>
-                                                            <MenuItem value="HpoSd">U.S. Presidents</MenuItem>
-                                                        </Select>
-                                                        </FormControl>
-                                                    </td>
-                                                    <td>
-                                                        <input type="text" value={this.state.image_sources[1]} 
-                                                            onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[1] = val; return(state)})}}
-                                                        />
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td>
-                                                        <FormControl style={{minWidth: '250px'}}>
-                                                            <InputLabel>Location source</InputLabel>
-                                                            <Select 
-                                                                autoWidth
-                                                                value={this.state.image_sources[2]}
-                                                                onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[2] = val; return(state)})}}
-                                                            >
-                                                                <MenuItem value="VoCv2">Creepy Places 1</MenuItem>
-                                                                <MenuItem value="MA55k">Creepy Places 2</MenuItem>
-                                                                <MenuItem value="nZv1Czp">Environmental Storytelling</MenuItem>
-                                                                <MenuItem value="9JUQg">Fighting Game Stages</MenuItem>
-                                                                <MenuItem value="fMC79b8" selected>Mysterium</MenuItem>
-                                                                <MenuItem value="jhxPqxh">Smash Bros. Stages</MenuItem>
-                                                                <MenuItem value="RqkUd8g">Toilets</MenuItem>
-                                                            </Select>
-                                                        </FormControl>
-                                                    </td>
-                                                    <td>
-                                                        <input type="text" value={this.state.image_sources[2]} 
-                                                            onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[2] = val; return(state)})}}
-                                                        />
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td>
-                                                        <FormControl style={{minWidth: '250px'}}>
-                                                            <InputLabel>Weapon source</InputLabel>
-                                                            <Select 
-                                                                autoWidth
-                                                                value={this.state.image_sources[3]}
-                                                                onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[3] = val; return(state)})}}
-                                                            >
-
-                                                                <MenuItem value="VyAWb">Accidents</MenuItem>
-                                                                <MenuItem value="Cyqqv">Beans in Things</MenuItem>
-                                                                <MenuItem value="mtzum">Bizarro World Items</MenuItem>
-                                                                <MenuItem value="dzppwsZ">Household Spaceships</MenuItem>
-                                                                <MenuItem value="Vpiu5It" selected>Mysterium</MenuItem>
-                                                                <MenuItem value="RXFfv">Prison Inventions</MenuItem>
-                                                            </Select>
-                                                        </FormControl>
-                                                    </td>
-                                                    <td>
-                                                        <input type="text" value={this.state.image_sources[3]} 
-                                                            onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[3] = val; return(state)})}}
-                                                        />
-                                                    </td>
-                                                </tr>
-                                            </table>
+                            <Default>
+                                {this.state.host && 
+                                    <div className="row" style={{display:"flex", width:"80%", maxHeight:"30%",}}>
+                                        <div className = "nicebox" style={{flex:"2", padding:"10px", width:"100%", overflow:"scroll", marginRight:"5px"}}>
+                                            {this.Options()}
+                                        </div>
+                                        <div style={{flex:1, display:"flex", alignItems:"center", justifyContent:"center", marginLeft:"10px"}}>
+                                            <Button style={{width:"100%", height:"70%",}} variant="contained" color="primary" onClick={this.sendStart }>
+                                                Start
+                                            </Button>
                                         </div>
                                     </div>
-                                    <div style={{flex:1, display:"flex", alignItems:"center", justifyContent:"center", marginLeft:"5px"}}>
-                                        <IconButton style={{width:"70%", height:"70%",}} variant="contained" color="primary" onClick={this.sendStart }>
-                                            <FaPlayCircle style={{color:"#058ED9"}} size="sm"/>
-                                        </IconButton>
+                                }
+                            </Default>
+                            <Mobile>
+                                {this.state.host && 
+                                <div className="row" style={{display:"flex", width:"80%", maxHeight:"30%",}}>
+                                    <div style={{flex:1, display:"flex", alignItems:"center", justifyContent:"center", marginLeft:"10px"}}>
+                                        <Button style={{width:"100%", height:"100%",}} variant="contained" color="default" onClick={this.toggleOptions}>
+                                            Options
+                                        </Button>
+                                    </div>
+                                    <div style={{flex:1, display:"flex", alignItems:"center", justifyContent:"center", marginLeft:"10px"}}>
+                                        <Button style={{width:"100%", height:"100%",}} variant="contained" color="primary" onClick={this.sendStart }>
+                                            Start
+                                        </Button>
                                     </div>
                                 </div>
-                            }
+                                }
+                            </Mobile>
                         </div>
-                        <div style={{width:"17vw", minWidth:"150px", height:'100%', padding:'5px', boxSizing:'border-box',}}>
-                            <div className="nicebox" style={{width:'100%', overflow:'auto', height:'100%', display:'flex', flexDirection:"column", alignItems:"center"}}>
-                                {this.chatbox()}
+                        <Default>
+                            <div style={{width:"17vw", minWidth:"150px", height:'100%', padding:'5px', boxSizing:'border-box',}}>
+                                <div className="nicebox" style={{width:'100%', overflow:'auto', height:'100%', display:'flex', flexDirection:"column", alignItems:"center"}}>
+                                    <h3 style={{textAlign:"center"}}> Chat </h3>
+                                    {this.Chatbox()}
+                                </div>
                             </div>
-                        </div>
+                        </Default>
+                        <SlidingPane
+                            isOpen={this.state.mobile_options_visible}
+                            title="Options"
+                            onRequestClose={this.toggleOptions}
+                            from="bottom"
+                            width="100%"
+                        >
+                                {this.Options()}
+                            
+                        </SlidingPane>
+                        <SlidingPane
+                            isOpen={this.state.mobile_chat_visible}
+                            title="Chat"
+                            onRequestClose={this.toggleChat}
+                            width="90%"
+                        >
+                            <div style={{width:'100%', overflow:'auto', height:'100%', display:'flex', flexDirection:"column", alignItems:"center"}}>
+                                {this.Chatbox()}
+                            </div>
+                        </SlidingPane>
                     </div>
                 </div>
             )
@@ -886,6 +887,7 @@ export default class Main extends React.Component {
                 </div>
             </div>
         )
+
         const visibleCards = this.state.selected_stage < 3 ? (
             <div style={{flex:'0 1 auto'}}> 
                 <h3>{cardtype}</h3>
@@ -902,33 +904,653 @@ export default class Main extends React.Component {
 
         return(
             <div className="container">
-                <div className = "row" style={{height:'100%'}}>
-                    <div style={{width:"17vw", minWidth:"150px", height:'100%', padding:'5px', boxSizing:'border-box',}}>
-                        <div className="nicebox" style={{width:'100%', overflow:'auto', height:'100%', display:'flex', flexDirection:"column", alignItems:"center"}}>
-                            {this.mainhand()}
+                <Default>
+                    <div className = "row" style={{height:'100%'}}>
+                        <div style={{width:"17vw", minWidth:"150px", height:'100%', padding:'5px', boxSizing:'border-box',}}>
+                            <div className="nicebox" style={{width:'100%', overflow:'auto', height:'100%', display:'flex', flexDirection:"column", alignItems:"center"}}>
+                                {this.mainhand()}
+                            </div>
+                        </div>
+                        <div style={{flex:1, height:'100%', display:'flex', flexDirection:"column", padding:'5px',  boxSizing:'border-box'}}>
+                            <div className = "row" style={{overflow:'auto', flex:'0 1 auto'}}>
+                                {this.allpsychics()}
+                            </div>
+                            {mainDisplay}
+                            {visibleCards}
+                        </div>
+                        <div style={{width:"17vw", minWidth:"150px", height:'100%', padding:'5px', boxSizing:'border-box',}}>
+                            <div className="nicebox" style={{width:'100%', overflow:'auto', height:'100%', display:'flex', flexDirection:"column", alignItems:"center"}}>
+                                <h3 style={{textAlign:"center"}}> Chat </h3>
+                                {this.Chatbox()}
+                            </div>
                         </div>
                     </div>
-                    <div style={{flex:1, height:'100%', display:'flex', flexDirection:"column", padding:'5px',  boxSizing:'border-box'}}>
-                        <div className = "row" style={{overflow:'auto', flex:'0 1 auto'}}>
-                            {this.allpsychics()}
+                </Default>
+                <Mobile>
+                    <div style={{height:"100%", justifyContent:"space-between", display:'flex', alignItems:"stretch", flexDirection:"column", padding:'5px',  boxSizing:'border-box'}}>
+                        <div>
+                            {this.mobileAllPsychics()}
                         </div>
-                        {mainDisplay}
-                        {visibleCards}
-                    </div>
-                    <div style={{width:"17vw", minWidth:"150px", height:'100%', padding:'5px', boxSizing:'border-box',}}>
-                        <div className="nicebox" style={{width:'100%', overflow:'auto', height:'100%', display:'flex', flexDirection:"column", alignItems:"center"}}>
-                            {this.chatbox()}
+                        {this.mobileMainDisplay()}
+                        <div>
+                            {this.mobileButtons()}
+                            <hr/>
+                            {this.mobileBottomBar()}
                         </div>
                     </div>
-                </div>
+                </Mobile>
+                <SlidingPane
+                    isOpen={this.state.mobile_chat_visible}
+                    title="Chat"
+                    onRequestClose={this.toggleChat}
+                    width="90%"
+                >
+                    <div style={{width:'100%', overflow:'auto', height:'100%', display:'flex', flexDirection:"column", alignItems:"center"}}>
+                        {this.Chatbox()}
+                    </div>
+                </SlidingPane>
             </div>
         )
     }
 
+///////////////////////////////////Options
+
+    Options = () =>{
+        return(
+            <div>
+                <h4 style={{margin:"0px 0px 10px 0px"}}>
+                    Image sources 
+                    <span style={{fontWeight:"normal", fontSize:".8em"}}> (Select options or paste custom Imgur album IDs. Choices will only apply if *you* start the game.)</span>
+                </h4>
+                <table style={{width:"100%"}}>
+                    <tr>
+                        <td>
+                            <FormControl style={{minWidth: '250px'}}>
+                                <InputLabel>Dream source</InputLabel>
+                                <Select 
+                                    autoWidth={true}
+                                    value={this.state.image_sources[0]}
+                                    onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[0] = val; return(state)})}}
+                                >
+                                    <MenuItem value="vdLZg">Creepy Art</MenuItem>
+                                    <MenuItem value="oGo8Vup">Cursed Images</MenuItem>
+                                    <MenuItem value="65X9xYV" selected>Mysterium</MenuItem>
+                                    <MenuItem value="Tf4Nc">Simpsons Gifs</MenuItem>
+                                    <MenuItem value="B9ukS">Surreal Art</MenuItem>
+                                    <MenuItem value="yGUC9">Weird Gifs</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </td>
+                        <td>
+                            <input type="text" value={this.state.image_sources[0]} 
+                                onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[0] = val; return(state)})}}
+                            />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <FormControl style={{minWidth: '250px'}}>
+                            <InputLabel>Suspect source</InputLabel>
+                            <Select 
+                                autoWidth
+                                value={this.state.image_sources[1]}
+                                onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[1] = val; return(state)})}}
+                            >
+                                <MenuItem value="NEoYMSr">Cursed Toys</MenuItem>
+                                <MenuItem value="WJ0gR">Jojo Stands</MenuItem>
+                                <MenuItem value="7d3zQ">Meme Team c. 2010</MenuItem>
+                                <MenuItem value="ageiv">Misc. Characters</MenuItem>
+                                <MenuItem value="J85fFat" selected>Mysterium</MenuItem>
+                                <MenuItem value="W6FgJ">Overwatch (?)</MenuItem>
+                                <MenuItem value="hNU02">Pokemon (Realistic)</MenuItem>
+                                <MenuItem value="GF5ScJI">Psychedelic Portraits</MenuItem>
+                                <MenuItem value="aZClIlk">Smash Bros.</MenuItem>
+                                <MenuItem value="g0pzP">Snakes in Hats</MenuItem>
+                                <MenuItem value="4W4YZ">TF2</MenuItem>
+                                <MenuItem value="HpoSd">U.S. Presidents</MenuItem>
+                            </Select>
+                            </FormControl>
+                        </td>
+                        <td>
+                            <input type="text" value={this.state.image_sources[1]} 
+                                onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[1] = val; return(state)})}}
+                            />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <FormControl style={{minWidth: '250px'}}>
+                                <InputLabel>Location source</InputLabel>
+                                <Select 
+                                    autoWidth
+                                    value={this.state.image_sources[2]}
+                                    onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[2] = val; return(state)})}}
+                                >
+                                    <MenuItem value="VoCv2">Creepy Places 1</MenuItem>
+                                    <MenuItem value="MA55k">Creepy Places 2</MenuItem>
+                                    <MenuItem value="nZv1Czp">Environmental Storytelling</MenuItem>
+                                    <MenuItem value="9JUQg">Fighting Game Stages</MenuItem>
+                                    <MenuItem value="fMC79b8" selected>Mysterium</MenuItem>
+                                    <MenuItem value="jhxPqxh">Smash Bros. Stages</MenuItem>
+                                    <MenuItem value="RqkUd8g">Toilets</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </td>
+                        <td>
+                            <input type="text" value={this.state.image_sources[2]} 
+                                onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[2] = val; return(state)})}}
+                            />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <FormControl style={{minWidth: '250px'}}>
+                                <InputLabel>Weapon source</InputLabel>
+                                <Select 
+                                    autoWidth
+                                    value={this.state.image_sources[3]}
+                                    onChange={(evt) => {const val = evt.target.value; this.setState((state)=>{state.image_sources[3] = val; return(state)})}}
+                                >
+
+                                    <MenuItem value="VyAWb">Accidents</MenuItem>
+                                    <MenuItem value="Cyqqv">Beans in Things</MenuItem>
+                                    <MenuItem value="mtzum">Bizarro World Items</MenuItem>
+                                    <MenuItem value="dzppwsZ">Household Spaceships</MenuItem>
+                                    <MenuItem value="Vpiu5It" selected>Mysterium</MenuItem>
+                                    <MenuItem value="RXFfv">Prison Inventions</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </td>
+                        <td>
+                            <input type="text" value={this.state.image_sources[3]} 
+                                onChange={(evt)=> {const val = evt.target.value; this.setState((state)=>{state.image_sources[3] = val; return(state)})}}
+                            />
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        )
+    }
+
+///////////////////////////////////Mobile
+
+    mobileMainDisplay = () =>{
+        return(
+            <div className="nicebox" style ={{height:"65%", width:"100%", overflow:"hidden"}}>
+                {this.state.mobile_images_selected === "cards" && 
+                        this.mobileCardDisplay()
+                }
+                {this.state.mobile_images_selected === "all_visions" && 
+                        this.mobileAllVisionDisplay()
+                }
+                {this.state.mobile_images_selected === "psychic_visions" && 
+                        this.mobilePsychicVisionDisplay()
+                }
+            </div>
+        )
+    }
+
+    mobileAllVisionDisplay = () =>{
+        return(
+            <Swiper
+                pagination={{ clickable: true }}
+                zoom
+                style={{ width: '100%', height: '100%', padding:"5px", zIndex:0}}
+                spaceBetween={10}
+                slidesPerView={1.5}
+                centeredSlides={true}
+                onSlideChange={(swiper) => console.log(swiper.activeIndex)}
+                onSwiper={(swiper) => console.log(swiper)}
+                coverflowEffect= {{
+                    rotate: 50,
+                    stretch: 0,
+                    depth: 100,
+                    modifier: 1,
+                    slideShadows: false,
+                  }}
+            >
+            {this.state.ghost["hand"].map((card, index) => {
+                const color = this.state.selected.includes(card) ? "rgba(0,0,255,1)" : "rgba(0,0,255,0)";
+                return(
+                    <SwiperSlide 
+                        zoom={true}
+                        style={{display:"flex", alignItems:"center", "justifyContent":"center"}}
+                    >
+                        <img 
+                            alt="Dream"
+                            type="button" 
+                            id = {card} 
+                            key={index} 
+                            style = {{
+                                borderColor:color,
+                                borderWidth:"2px",
+                                borderStyle:"solid",
+                                maxHeight:"90%", 
+                                maxWidth:"90%",
+                                objectFit: "contain",
+                                cursor: "pointer",
+                            }}
+                            src={this.state.image_links['dreams'][card]}
+                            onClick={(event) => {
+                                this.setState((state) =>{
+                                    var selected = state.selected
+                                    if(selected.includes(card)){
+                                        selected.splice(selected.indexOf(card), 1);
+                                    }else{
+                                        selected.push(card)
+                                    }
+                                    return(
+                                        {'selected': selected}
+                                    )
+                                })
+                            }}
+                        />
+                    </SwiperSlide>
+                )
+            })}
+            </Swiper>
+        )    
+    }
+
+    mobilePsychicVisionDisplay = () =>{
+        return(
+            <Swiper
+                pagination={{ clickable: true }}
+                zoom
+                spaceBetween={10}
+                style={{ width: '100%', height: '100%', padding:"5px", zIndex:0 }}
+                slidesPerView={1.5}
+                centeredSlides={true}
+                onSlideChange={(swiper) => console.log(swiper.activeIndex)}
+                onSwiper={(swiper) => console.log(swiper)}
+                coverflowEffect= {{
+                    rotate: 50,
+                    stretch: 0,
+                    depth: 100,
+                    modifier: 1,
+                    slideShadows: false,
+                  }}
+            >
+                {this.state.psychics[this.state.selected_psychic]['hand'].map((card, index) => {
+                    return(
+                        <SwiperSlide zoom={true} style={{display:"flex", alignItems:"center", "justifyContent":"center"}}>
+                            <img 
+                                alt="Dream"
+                                src={this.state.image_links['dreams'][card]}
+                                key={index} 
+                                style={{
+                                    cursor: "pointer",
+                                    maxHeight:"100%", 
+                                    maxWidth:"100%",
+                                    objectFit: "contain"
+                                }}
+                                onClick={(event) => {
+                                    this.setState({selected_dream:card})
+                                }}
+                            />
+                        </SwiperSlide>
+                    )
+                })}
+            </Swiper>
+        )
+    }
+
+    mobileCardDisplay = () =>{
+        const cardtype = this.state.selected_stage === 0 ? "suspects" : (this.state.selected_stage === 1 ? "places" : "things")            
+        if(this.state.selected_stage < 3){
+            return(
+                <Swiper
+                    pagination={{ clickable: true }}
+                    zoom
+                    spaceBetween={10}
+                    style={{ width: '100%', height: '100%', padding:"5px", zIndex:0 }}
+                    slidesPerView={1.5}
+                    centeredSlides={true}
+                    onSlideChange={(swiper) => {
+                        const ct = this.state.selected_stage === 0 ? "suspects" : (this.state.selected_stage === 1 ? "places" : "things")            
+                        this.setState({selected_card: this.state.cards[ct][swiper.activeIndex]})
+                        console.log(this.state.selected_stage, ct, swiper.activeIndex, this.state.cards[ct][swiper.activeIndex])
+                    }}
+                    onSwiper={(swiper) => console.log(swiper)}
+                    coverflowEffect= {{
+                        rotate: 50,
+                        stretch: 0,
+                        depth: 100,
+                        modifier: 1,
+                        slideShadows: false,
+                      }}
+                >
+                        {this.state.cards[cardtype].map((card, index) => {
+                            const opacity = this.cardTaken(card)? ".4" : "1" ;
+
+                            let color,current
+                            if(this.state.client_id === "ghost"){
+                                 color = card === this.state.stories[this.state.selected_psychic][this.state.selected_stage] ? "#791E94" : "black" ;
+                                 current = card === this.state.stories[this.state.selected_psychic][this.state.selected_stage] ? "0 0 10px 3px rgba(121, 30, 148, .7)" : "0 0"
+                            }else{
+                                color = this.cardGuessable(card) ? "41D3BD" : "black" ;
+                                current = this.cardIsGuess(card) ? "0 0 10px 3px rgba(65, 211, 189, .7)" : "0 0"
+                            }
+                            return(
+                                <SwiperSlide zoom={true} style={{display:"flex", alignItems:"center", "justifyContent":"center"}}>
+                                    <img 
+                                        alt={cardtype}
+                                        key={index}
+                                        src={this.state.image_links['cards'][this.state.selected_stage][card]}
+                                        style = {{
+                                            opacity:opacity,
+                                            cursor: "pointer",
+                                            borderColor:color, 
+                                            boxShadow:current,
+                                            maxHeight:"100%", 
+                                            maxWidth:"100%",
+                                            objectFit: "contain"
+                                        }}
+                                    />
+                                </SwiperSlide>
+                            )
+                        })}
+                    )
+                </Swiper>
+            )
+        }else{
+            return(
+                <Swiper
+                    spaceBetween={10}
+                    style={{ width: '100%', height: '100%', zIndex:0 }}
+                    slidesPerView={1.5}
+                    centeredSlides={true}
+                    coverflowEffect= {{
+                        rotate: 50,
+                        stretch: 0,
+                        depth: 100,
+                        modifier: 1,
+                        slideShadows: false,
+                      }}
+                >
+                        {[...Array(3)].map((_, index) => {
+                                
+                                return(
+                                    <SwiperSlide style={{display:"flex", alignItems:"center", "justifyContent":"center"}}>
+                                        <img 
+                                            key={index}
+                                            src={this.state.image_links['cards'][index][this.state.psychics[this.state.selected_psychic]["story"][index]]}
+                                            style = {{
+                                                cursor: "pointer",
+                                                borderColor:"black", 
+                                                maxHeight:"100%", 
+                                                maxWidth:"100%",
+                                                objectFit: "contain"
+                                            }}
+                                        />
+                                    </SwiperSlide>
+                                )
+                            })
+                        }
+                    )
+                </Swiper>
+            )
+        }
+
+    }
+
+    mobileButtons = () =>{
+        const cardtype = this.state.selected_stage === 0 ? "Suspects" : (this.state.selected_stage === 1 ? "Places" : "Weapons")
+        return(
+            <div style={{display:"flex", alignItems:"center", padding:"20px", flexDirection:"row"}}>
+                {this.state.client_id === "ghost" && this.state.mobile_images_selected === "all_visions" &&
+                    <div style={{flex:1, textAlign:"center"}}>
+                        <Button 
+                            onClick={()=>this.sendDreams(this.state.selected_psychic)}
+                            disabled={this.state.selected_stage>2 || this.state.ghost['psychics_clued'].includes(parseInt(this.state.selected_psychic)) || this.state.selected.length==0}
+                            endIcon={<Send/>}
+                            variant="contained" 
+                            color="primary"
+                        >
+                            Send {this.state.selected.length} Visions
+                        </Button>
+                    </div>
+                }
+                {this.state.client_id === "ghost" && this.state.mobile_images_selected === "all_visions" &&
+                    <div style={{flex:1, textAlign:"center"}}>
+                        <Button 
+                            startIcon={<FaCrow/>}
+                            onClick={()=>this.useRaven()}
+                            disabled={this.state.game_over || this.state.ravens===0 || this.state.selected.length==0}
+                            variant="outlined"
+                        >
+                            Redraw {this.state.selected.length} Visions
+                        </Button>
+                    </div>
+                }
+                {this.state.client_id !== "ghost" && this.state.client_id===this.state.selected_psychic && this.state.mobile_images_selected === "cards" &&
+                    <div style={{flex:1, textAlign:"center"}}>
+                        <Button 
+                            variant="contained" 
+                            color="primary"
+                            disabled = {!this.cardGuessable(this.state.selected_card) || this.cardWaiting(0)}
+                            onClick={()=>{
+                                this.makeGuess(this.state.selected_card)
+                            }}
+                        >
+                            Guess
+                        </Button>
+                    </div>
+                }
+                {this.state.game_over && 
+                    <div className="row">
+                        <Button 
+                            variant="contained" 
+                            color="primary"
+                            onClick={()=>{this.leaveGame()}}
+                        >
+                            Return to Lobby
+                        </Button>
+                    </div>
+                }
+            
+            </div>
+        )
+    }
+
+    mobileBottomBar = () =>{
+        if(this.state.selected_stage < 3){
+            const cardtype = this.state.selected_stage === 0 ? "Suspects" : (this.state.selected_stage === 1 ? "Places" : "Weapons")
+            return(
+                <div style={{width:"100%", display:"flex", flexDirection:"row", alignItems:"center",justifyContent:"space-around", }}>
+                    {this.state.client_id === "ghost" &&
+                        <div style={{flex:1, textAlign:"center"}}>
+                            <IconButton 
+                                variant="contained"
+                                color="default"
+                                onClick={()=>this.setState({mobile_images_selected:"all_visions"})}>
+                               <FaBrain/>
+                            </IconButton>
+                        </div>
+                    }
+                    <div style={{flex:1, textAlign:"center"}}>
+                        <IconButton 
+                            variant="contained"
+                            color="default"
+                            onClick={()=>this.setState({mobile_images_selected:"psychic_visions"})}>
+                               <FaEye/>
+                        </IconButton>
+                    </div>
+                    <div style={{flex:1, textAlign:"center"}}>
+                        {cardtype === "Suspects" &&
+                            <IconButton 
+                                variant="contained"
+                                color="default"
+                                onClick={()=>this.setState({mobile_images_selected:"cards"})}>
+                                    <FaUserNinja/>
+                            </IconButton>
+                        }
+                        {cardtype === "Places" &&
+                            <IconButton 
+                                variant="contained"
+                                color="default"
+                                onClick={()=>this.setState({mobile_images_selected:"cards"})}>
+                                    <FaHome/>
+                            </IconButton>
+                        }
+                        {cardtype === "Weapons" &&
+                            <IconButton 
+                                variant="contained"
+                                color="default"
+                                onClick={()=>this.setState({mobile_images_selected:"cards"})}>
+                                    <FaHammer/>
+                            </IconButton>
+                        }
+                    </div>
+                </div>
+            )
+        }else{
+            return(null)
+            // return(
+            //     <div style={{width:"100%", "textAlign":"center"}}>
+            //         <h3>{this.state.psychic_names[this.state.selected_psychic]} has solved their mystery!</h3>
+            //     </div>
+            // )
+        }
+    }
+
+    ///////////////////////// Psychics Bar
+        mobileAllPsychics = () =>{
+            return this.state.client_id === "ghost" ? this.mobileGhostAllPsychics() : this.mobilePsychicAllPsychics()
+        }
+
+        mobileGhostAllPsychics = () =>{
+            const icon_color = this.state.psychics[this.state.selected_psychic].current_guess !== null ? "rgba(65, 211, 189, 1)" : (this.state.ghost['psychics_clued'].includes(this.state.selected_psychic)? "rgba(186, 90, 49,1)" : "gray")
+            return(
+                <div className = "hand" style={{justifyContent:"space-between", height:'100%', overflow:'auto', "textAlign":'center'}}>
+                    <div style={{flex:1, textAlign:"left"}}>
+                        <div>
+                            <h3 style={{margin:"0px"}}>
+                                <FaCrow style={{position:"relative", top:"5px"}}/>x{this.state.ravens}
+                            </h3>
+                        </div>
+                    </div>
+                    <div style={{textAlign:"center"}}>
+                        <IconContext.Provider value={{ padding:"0px",size:"2em", color: icon_color, className: "global-class-name" }}>
+                            <div>
+                                {this.state.psychics[this.state.selected_psychic].stage === 0 &&
+                                <FaUserNinja />
+                                }
+                                {this.state.psychics[this.state.selected_psychic].stage === 1 &&
+                                <FaHome />
+                                }
+                                {this.state.psychics[this.state.selected_psychic].stage === 2 &&
+                                <FaHammer />
+                                }
+                            </div>
+                        </IconContext.Provider>
+                        <Select 
+                            autoWidth={true}
+                            value={this.state.selected_psychic}
+                            onChange={(evt) => {
+                                const val = parseInt(evt.target.value); 
+                                if(this.state.selected_psychic !== val){
+                                    this.setState({
+                                        selected_stage: this.state.psychics[val]['stage'],
+                                        selected_card:this.state.stories[val][this.state.psychics[val]['stage']],
+                                        selected_psychic:val
+                                    })
+                                }
+                            }}
+
+                        >
+                            {Object.keys(this.state.psychics).map((psychic_id, index) => {return(
+                                <MenuItem value={psychic_id}>{this.state.psychic_names[psychic_id]}</MenuItem>
+                            )})}
+                        </Select>
+
+                    </div>
+
+                    <div style={{flex:1, textAlign:'right'}}>
+                        {this.state.game_over?
+                            <h2 style={{margin:"0px"}}>Game over!</h2>
+                        :
+                            <div>
+                                <h4 style={{margin:"0px"}}>Round</h4>
+                                <h3 style={{margin:"0px"}}>{this.state.current_round}/7</h3>
+                            </div>
+                        }
+                    </div>
+                </div>
+            )
+        }
+
+        mobilePsychicAllPsychics = () =>{
+            const icon_color = this.state.psychics[this.state.selected_psychic].current_guess !== null ? "rgba(65, 211, 189, 1)" : (this.state.ghost['psychics_clued'].includes(this.state.selected_psychic)? "rgba(186, 90, 49,1)" : "gray")
+            return(
+                <div className = "hand" style={{justifyContent:"space-between", height:'100%', overflowX:'auto', "textAlign":'center'}}>
+                    <div style={{flex:1, textAlign:'left'}}>
+                        {this.state.game_over?
+                            <h3 style={{margin:"0px"}}>Game over!</h3>
+                        :
+                            <div>
+                                <h4 style={{margin:"0px"}}>Round</h4>
+                                <h3 style={{margin:"0px"}}>{this.state.current_round}/7</h3>
+                            </div>
+                        }
+                    </div>
+                    <div style={{textAlign:"center"}}>
+                        <IconContext.Provider value={{ padding:"0px",size:"2em", color: icon_color, className: "global-class-name" }}>
+                            <div>
+                                {this.state.psychics[this.state.selected_psychic].stage === 0 &&
+                                <FaUserNinja />
+                                }
+                                {this.state.psychics[this.state.selected_psychic].stage === 1 &&
+                                <FaHome />
+                                }
+                                {this.state.psychics[this.state.selected_psychic].stage === 2 &&
+                                <FaHammer />
+                                }
+                            </div>
+                        </IconContext.Provider>
+                        <Select 
+                            autoWidth={true}
+                            value={this.state.selected_psychic}
+                            onChange={(evt) => {
+                                const val = parseInt(evt.target.value); 
+                                if(this.state.selected_psychic !== val){
+                                    this.setState({
+                                        selected_stage: this.state.psychics[val]['stage'],
+                                        selected_card:this.state.psychics[val]['current_guess'],
+                                        selected_psychic:val
+                                    })
+                                }
+                            }}
+
+                        >
+                            {Object.keys(this.state.psychics).map((psychic_id, index) => {return(
+                                <MenuItem value={psychic_id}>{this.state.psychic_names[psychic_id]}</MenuItem>
+                            )})}
+                        </Select>
+
+                    </div>
+                    <div style={{flex:1, textAlign:"right"}}>
+                        <IconButton onClick={this.toggleChat}>
+                            <IconContext.Provider value={{ size:"1em", color: "#058ED9", className: "global-class-name" }}>
+                                {this.state.mobile_chat_visible?
+                                <FaComment/>
+                                :
+                                <FaRegComment/>
+                                }
+                            </IconContext.Provider>
+                        </IconButton>
+                    </div>
+                </div>
+            )
+        }
+
+
+
+
 ///////////////////////////////////Chat
 
-    chatbox = () =>{
-        var chatBox = (this.state.started && this.state.client_id==="ghost")?
+    Chatbox = () =>{
+        var chatbox = (this.state.started && this.state.client_id==="ghost")?
             <div>
                 <div style={{fontSize:"2em", width:"100%", display:"flex", padding:"20px 0px", justifyContent:"space-around", flexDirection:"row"}}>
                     <button 
@@ -993,7 +1615,6 @@ export default class Main extends React.Component {
             <div 
                 style={{width:"100%", height:"100%", backgroundColor:"white", display:"flex", flexDirection:"column"}}
             >
-                <h3 style={{textAlign:"center"}}> Chat </h3>
                 <div style={{padding:"2px", flex:'1',  overflowWrap: "break-word", boxSizing:"border-box", backgroundColor:"white", minHeight: '0px', width:"100%", overflow:"auto", display:"flex", flexDirection:"column-reverse"}}>
                     {
                         this.state.chatlog.map((message, index) => {
@@ -1016,10 +1637,11 @@ export default class Main extends React.Component {
                         })
                     }
                 </div>
-                {chatBox}
+                {chatbox}
             </div>
         )
     }
+
 
 ///////////////////////////////////All psychics
 
